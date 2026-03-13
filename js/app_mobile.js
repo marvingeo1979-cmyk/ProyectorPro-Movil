@@ -194,22 +194,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Mantener formulario a la vista al cerrar teclado
-    const manualInputs = ['manualAnnTitle', 'manualAnnText'];
+    const manualInputs = ['manualAnnTitle', 'manualAnnText', 'manualAnnTime'];
     manualInputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.onblur = () => {
-                // Al perder el foco (cerrar teclado), nos aseguramos de no perder el formulario
-                if (!annFormContainer.classList.contains('hidden')) {
-                    setTimeout(() => {
-                        const target = document.getElementById('manualAnnTitle');
-                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 50);
-                }
+                setTimeout(() => {
+                    const active = document.activeElement;
+                    if (!manualInputs.includes(active.id)) {
+                        if (!annFormContainer.classList.contains('hidden')) {
+                            const panelAnuncios = document.querySelector('.panel[data-id="anuncios"]');
+                            const formHeader = document.getElementById('annFormHeader');
+                            if (panelAnuncios && formHeader) {
+                                panelAnuncios.scrollTo({
+                                    top: formHeader.offsetTop - 10,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }
+                    }
+                }, 250);
             };
         }
     });
-    
+
     initStatusIndicators();
 });
 
