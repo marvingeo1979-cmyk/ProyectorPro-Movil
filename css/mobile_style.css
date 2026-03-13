@@ -43,12 +43,32 @@ body {
 
 /* ── HEADER ── */
 .mobile-header {
-    padding: 1rem 1.25rem;
-    background: linear-gradient(180deg, var(--wine-dark) 0%, rgba(15, 5, 6, 0) 100%);
+    padding: 0.8rem 1.25rem;
+    background: linear-gradient(180deg, var(--wine-dark) 0%, rgba(15, 5, 6, 0.8) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    border-bottom: 2px solid var(--glass-border);
+    backdrop-filter: blur(15px);
+    z-index: 100;
+}
+
+.header-main-row, .header-status-row {
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--glass-border);
+}
+
+.header-status-row {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.status-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .brand {
@@ -124,9 +144,55 @@ body {
 .user-badge {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    gap: 0.75rem;
+}
+
+.user-info-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--ocher-light);
+    font-weight: 600;
+}
+
+.user-info-wrap i {
+    color: var(--ocher-base);
+}
+
+.btn-cart-header {
+    position: relative;
+    background: linear-gradient(90deg, var(--wine-accent), #7a162d);
+    border: 1px solid var(--ocher-base);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-cart-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.cart-badge {
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    display: none; /* Se activa por JS */
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
 }
 
 /* ── MAIN CONTENT ── */
