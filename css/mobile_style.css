@@ -24,6 +24,8 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    position: relative;
+    width: 100%;
 }
 
 body {
@@ -227,7 +229,9 @@ body {
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 2rem; /* Espacio extra para que el teclado no tape botones */
     animation: slideIn 0.3s ease-out;
 }
 
