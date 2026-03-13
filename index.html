@@ -46,29 +46,35 @@
             </div>
         </div>
         <header class="mobile-header">
-            <div class="brand">
+            <!-- Lado Izquierdo: Marca e Indicadores debajo -->
+            <div class="brand" style="display: flex; align-items: center; gap: 10px;">
                 <img src="favicon.png" alt="Logo" class="mini-logo">
-                <div class="brand-text-wrap" style="display: flex; flex-direction: column;">
-                    <span class="brand-name" style="font-size: 0.9rem;">Proyector<span class="accent" style="color: var(--ocher-base);">Pro</span></span>
-                    <span style="font-size: 0.55rem; background: var(--wine-accent); padding: 1px 4px; border-radius: 3px; color: var(--ocher-light); font-weight: 800; width: fit-content; margin-top: -2px;">MÓVIL</span>
-                </div>
-                <div class="status-indicators" style="margin-left: 5px;">
-                    <span id="netIndicator" class="indicator offline" title="Internet"><i class="fa-solid fa-wifi"></i></span>
-                    <span id="cloudIndicator" class="indicator offline" title="Nube"><i class="fa-solid fa-cloud"></i></span>
+                <div class="brand-info-col" style="display: flex; flex-direction: column; justify-content: center;">
+                    <div class="brand-name-row" style="display: flex; align-items: center; gap: 6px; line-height: 1;">
+                        <span class="brand-name" style="font-size: 0.95rem; font-weight: 700;">Proyector<span class="accent" style="color: var(--ocher-base);">Pro</span></span>
+                        <span class="mobile-tag" style="font-size: 0.5rem; background: var(--wine-accent); padding: 1px 4px; border-radius: 3px; color: var(--ocher-light); font-weight: 900; letter-spacing: 0.5px;">MÓVIL</span>
+                    </div>
+                    <div class="status-indicators" style="display: flex; gap: 4px; margin-top: 4px;">
+                        <span id="netIndicator" class="indicator offline" title="Internet" style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-wifi" style="font-size: 0.5rem;"></i></span>
+                        <span id="cloudIndicator" class="indicator offline" title="Nube" style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-cloud" style="font-size: 0.5rem;"></i></span>
+                    </div>
                 </div>
             </div>
             
-            <div class="user-badge">
-                <button onclick="openCartPanel()" class="btn-cart-header" id="btnCartHeader">
-                    <i class="fa-solid fa-paper-plane" style="transform: rotate(-15deg);"></i>
+            <!-- Lado Derecho: Acciones y Usuario -->
+            <div class="user-badge" style="display: flex; align-items: center; gap: 8px;">
+                <button onclick="openCartPanel()" class="btn-cart-header" id="btnCartHeader" title="Enviar Lista" style="margin-right: 2px;">
+                    <i class="fa-solid fa-paper-plane" style="transform: rotate(-15deg); font-size: 0.9rem;"></i>
                     <span id="cartHeaderBadge" class="cart-badge">0</span>
                 </button>
-                <div id="userProfile" class="user-info-wrap">
-                    <i class="fa-solid fa-user-circle"></i>
-                    <span id="userName" style="max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Visitante</span>
+                
+                <div id="userProfile" class="user-info-wrap" style="background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-circle-user" style="color: var(--ocher-base); font-size: 1rem;"></i>
+                    <span id="userName" style="max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-weight: 600; color: var(--ocher-light);">Visitante</span>
                 </div>
-                <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión">
-                    <i class="fa-solid fa-power-off"></i>
+
+                <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión" style="width: 32px; height: 32px; min-width: 32px;">
+                    <i class="fa-solid fa-power-off" style="font-size: 0.8rem;"></i>
                 </button>
             </div>
         </header>
