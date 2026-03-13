@@ -171,7 +171,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cancelAnnEdit(); // Reset para nuevo
                 annFormContainer.classList.remove('hidden');
                 if (annFormHeader) annFormHeader.classList.add('active');
-                document.getElementById('manualAnnTitle').scrollIntoView({ behavior: 'smooth' });
+                
+                // Dar un pequeño tiempo para que el DOM se asiente
+                setTimeout(() => {
+                    const titleEl = document.getElementById('manualAnnTitle');
+                    if (titleEl) {
+                        titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        titleEl.focus();
+                    }
+                }, 100);
             } else {
                 annFormContainer.classList.add('hidden');
                 if (annFormHeader) annFormHeader.classList.remove('active');
@@ -184,6 +192,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             annFormHeader.classList.remove('active');
         };
     }
+
+    // Mantener formulario a la vista al cerrar teclado
+    const manualInputs = ['manualAnnTitle', 'manualAnnText'];
+    manualInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.onblur = () => {
+                // Al perder el foco (cerrar teclado), nos aseguramos de no perder el formulario
+                if (!annFormContainer.classList.contains('hidden')) {
+                    setTimeout(() => {
+                        const target = document.getElementById('manualAnnTitle');
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 50);
+                }
+            };
+        }
+    });
     
     initStatusIndicators();
 });
@@ -791,7 +816,12 @@ function editAnnouncement(ann) {
     const header = document.getElementById('annFormHeader');
     if (header) header.classList.add('active');
     
-    if (titleEl) titleEl.scrollIntoView({ behavior: 'smooth' });
+    if (titleEl) {
+        setTimeout(() => {
+            titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            titleEl.focus();
+        }, 150);
+    }
 }
 
 function cancelAnnEdit() {
