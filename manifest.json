@@ -1,0 +1,17 @@
+{
+  "name": "ProyectorPro Móvil",
+  "short_name": "ProyectorPro",
+  "description": "Aplicación de control y consulta para líderes de ProyectorPro",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f0506",
+  "theme_color": "#1a0609",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
