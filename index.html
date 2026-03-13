@@ -18,7 +18,7 @@
         <div id="loginScreen" class="login-overlay">
             <div class="auth-card-mobile">
                 <div class="brand" style="justify-content: center; margin-bottom: 2rem; scale: 1.2;">
-                    <img src="../favicon.png" alt="Logo" class="mini-logo">
+                    <img src="favicon.png" alt="Logo" class="mini-logo">
                     <div class="brand-text">
                         <span class="brand-name">Proyector</span><span class="brand-accent">Pro</span>
                     </div>
@@ -45,33 +45,25 @@
             </div>
         </div>
         <header class="mobile-header">
-            <div class="header-main-row">
-                <div class="brand">
-                    <img src="favicon.png" alt="Logo" class="mini-logo">
-                    <span class="brand-name">Proyector<span class="accent">Pro</span></span>
-                </div>
-                <div id="userProfile" class="user-badge">
-                    <div class="user-info-wrap">
-                        <i class="fa-solid fa-user-circle"></i>
-                        <span id="userName">Visitante</span>
-                    </div>
-                    <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión">
-                        <i class="fa-solid fa-power-off"></i>
-                    </button>
+            <div class="brand">
+                <img src="favicon.png" alt="Logo" class="mini-logo">
+                <div class="status-indicators">
+                    <span id="netIndicator" class="indicator offline" title="Internet"><i class="fa-solid fa-wifi"></i></span>
+                    <span id="cloudIndicator" class="indicator offline" title="Nube"><i class="fa-solid fa-cloud"></i></span>
                 </div>
             </div>
-            <div class="header-status-row">
-                <div class="status-left">
-                    <span class="view-tag">MÓVIL</span>
-                    <div class="status-indicators">
-                        <span id="netIndicator" class="indicator offline" title="Internet"><i class="fa-solid fa-wifi"></i> Web</span>
-                        <span id="cloudIndicator" class="indicator offline" title="Nube"><i class="fa-solid fa-cloud"></i> Nube</span>
-                    </div>
+            
+            <div class="user-badge">
+                <div id="userProfile" class="user-info-wrap">
+                    <i class="fa-solid fa-user-circle"></i>
+                    <span id="userName">Visitante</span>
                 </div>
                 <button onclick="openCartPanel()" class="btn-cart-header" id="btnCartHeader">
                     <i class="fa-solid fa-paper-plane" style="transform: rotate(-15deg);"></i>
                     <span id="cartHeaderBadge" class="cart-badge">0</span>
-                    <span class="btn-cart-label">ENVIAR LISTA</span>
+                </button>
+                <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión">
+                    <i class="fa-solid fa-power-off"></i>
                 </button>
             </div>
         </header>
