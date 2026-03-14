@@ -389,6 +389,7 @@ function renderBibleVersions() {
                  showConfirm(`¿Descargar ${v.id} para búsqueda local e instantánea? (Solo una vez)`, () => {
                      downloadFullBible(v.id);
                  });
+             } else {
                  showBibleView('books');
              }
         };
