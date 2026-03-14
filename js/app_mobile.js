@@ -165,7 +165,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCloudListeners();
     initVerseCacheListener();
     initNotesListener();
-    initSongFavoritesListener();
+    
+    // Pequeño retardo para asegurar estabilidad de Firestore antes de favoritos
+    setTimeout(() => {
+        initSongFavoritesListener();
+    }, 500);
     renderCart(); // Restaurar lo guardado
     renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud'); // Carga rápida desde cache
 
@@ -577,7 +581,7 @@ function performLocalSearch(query) {
 function renderVersesList(verses) {
     const container = document.getElementById('bibleVersesTextCloud');
     const headerTitle = document.getElementById('versesHeaderTitle');
-    if (headerTitle) headerTitle.textContent = "MARCA LOS VERSÃCULOS";
+    if (headerTitle) headerTitle.textContent = "MARCA LOS VERSICULOS";
     container.innerHTML = '';
     window.bibleState.selectedVerses = [];
     window.bibleState.currentVerses = verses; // Guardar versículos actuales para recuperar el texto después
@@ -676,9 +680,8 @@ function addSelectedVersesToCart() {
     const sorted = [...state.selectedVerses].sort((a, b) => a - b);
     const verAbbr = state.version.split('-').pop().trim();
 
-    // Función interna para procesar y añadir cada versículo individualmente
-    const processAndAdd = (obs) => {
-        sorted.forEach(vNum => {
+    function processAndAdd(obs) {
+        sorted.forEach(function(vNum) {
             const vData = state.currentVerses ? state.currentVerses.find(v => v.verse === vNum) : null;
             const cite = `${verAbbr} ${state.book.name} ${state.chapter}:${vNum}`;
             const vText = vData ? vData.text : "Versículo individual";
@@ -690,7 +693,7 @@ function addSelectedVersesToCart() {
         if (typeof showNotification === 'function') {
             showNotification(`${sorted.length} versículos añadidos.`, "success");
         }
-    };
+    }
 
     // Manejar modal de observaciones (copia lógica de addItemToCart para evitar múltiples popups)
     const modal = document.getElementById('modalObs');
@@ -1509,7 +1512,12 @@ function initSongFavoritesListener() {
     }, err => {
         console.error("[Mobile] Error cargando favoritos:", err);
         const list = document.getElementById('favoritosCantosList');
-        if(list) list.innerHTML = '<div class="error-state">Error al conectar con favoritos.</div>';
+        if(list) list.innerHTML = '<div class="error-state">Reconectando con favoritos...</div>';
+        
+        // Reintentar en 3 segundos
+        setTimeout(() => {
+            initSongFavoritesListener();
+        }, 3000);
     });
 
     const searchInput = document.getElementById('favSearch');
