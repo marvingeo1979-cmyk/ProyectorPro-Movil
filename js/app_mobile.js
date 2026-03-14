@@ -673,48 +673,39 @@ function addSelectedVersesToCart() {
     const state = window.bibleState;
     if (state.selectedVerses.length === 0) return;
     
-    // Ordenar versÃ­culos numÃ©ricamente
     const sorted = [...state.selectedVerses].sort((a, b) => a - b);
-    
-    // Algoritmo para agrupar rangos (ej: [1, 2, 3, 5, 7, 8] -> "1-3, 5, 7-8")
-    let groups = [];
-    if (sorted.length > 0) {
-        let start = sorted[0];
-        let end = start;
-
-        for (let i = 1; i <= sorted.length; i++) {
-            if (i < sorted.length && sorted[i] === end + 1) {
-                end = sorted[i];
-            } else {
-                if (start === end) {
-                    groups.push(start.toString());
-                } else {
-                    groups.push(`${start}-${end}`);
-                }
-                if (i < sorted.length) {
-                    start = sorted[i];
-                    end = start;
-                }
-            }
-        }
-    }
-
-    const rangeStr = groups.join(', ');
     const verAbbr = state.version.split('-').pop().trim();
-    const cite = `${verAbbr} ${state.book.name} ${state.chapter}:${rangeStr}`;
 
-    // Recopilar el texto completo de los versículos seleccionados
-    let fullText = "";
-    if (state.currentVerses) {
-        fullText = state.currentVerses
-            .filter(v => state.selectedVerses.includes(v.verse))
-            .sort((a, b) => a.verse - b.verse)
-            .map(v => `${v.verse}. ${v.text}`)
-            .join("\n");
+    // Función interna para procesar y añadir cada versículo individualmente
+    const processAndAdd = (obs) => {
+        sorted.forEach(vNum => {
+            const vData = state.currentVerses ? state.currentVerses.find(v => v.verse === vNum) : null;
+            const cite = `${verAbbr} ${state.book.name} ${state.chapter}:${vNum}`;
+            const vText = vData ? vData.text : "Versículo individual";
+            
+            addItemToCartFinal('bible', { cita: cite, texto: vText }, obs);
+        });
+        
+        bibleBack();
+        if (typeof showNotification === 'function') {
+            showNotification(`${sorted.length} versículos añadidos.`, "success");
+        }
+    };
+
+    // Manejar modal de observaciones (copia lógica de addItemToCart para evitar múltiples popups)
+    const modal = document.getElementById('modalObs');
+    const input = document.getElementById('obsModalInput');
+
+    if (modal && input) {
+        input.value = "";
+        modal.classList.remove('hidden');
+        document.getElementById('btnConfirmObs').onclick = () => {
+            processAndAdd(input.value.trim());
+            modal.classList.add('hidden');
+        };
+    } else {
+        processAndAdd("");
     }
-
-    addItemToCart('bible', { cita: cite, texto: fullText });
-    bibleBack();
 }
 
 /** ── NAVEGACIÓN DE VISTAS ── */
