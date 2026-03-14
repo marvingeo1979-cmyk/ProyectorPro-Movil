@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("[Persistence] No se pudo cargar IndexedDB, usando memoria temporal:", e);
     }
 
-    // Verificar sesiÃ³n
+    // Verificar sesión
     checkUserSession();
 
     initPanels();
@@ -327,11 +327,11 @@ function initNotesListener() {
                 el.style = "margin-bottom: 8px; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border-left: 3px solid var(--ocher-base); font-size: 0.85rem;";
                 el.innerHTML = `
                     <div style="display:flex; justify-content:space-between; margin-bottom: 5px; opacity:0.6; font-size:0.7rem;">
-                        <span>${(data.categoria || 'TÃ‰CNICA').toUpperCase()}</span>
+                        <span>${(data.categoria || 'TÉCNICA').toUpperCase()}</span>
                         <span>${timeStr}</span>
                     </div>
                     <div>${data.texto}</div>
-                    <div style="font-size:0.75rem; color:var(--ocher-light); margin-top:5px;">â€” ${data.usuario || 'LÃ­der'}</div>
+                    <div style="font-size:0.75rem; color:var(--ocher-light); margin-top:5px;">— ${data.usuario || 'Líder'}</div>
                 `;
                 container.appendChild(el);
             });
@@ -390,7 +390,7 @@ async function downloadFullBible(versionName) {
     try {
         const snapshot = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').get();
         if (snapshot.empty) {
-            showNotification(`La Biblia "${versionName}" aÃºn no ha sido preparada para descarga.`, "error");
+            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga.`, "error");
             if (btn) {
                 btn.innerHTML = oldHtml;
                 btn.style.opacity = '1';
@@ -409,7 +409,7 @@ async function downloadFullBible(versionName) {
         window.localBibles[versionName] = fullText;
         await MobileDB.saveBible(versionName, fullText);
         
-        showNotification(`Â¡${versionName} descargada!`, "success");
+        showNotification(`¡${versionName} descargada!`, "success");
         showBibleView('books');
     } catch (e) {
         console.error("Download error:", e);
@@ -475,7 +475,7 @@ async function renderChapterVerses() {
     const state = window.bibleState;
     const container = document.getElementById('bibleVersesTextCloud');
     
-    // 1. Â¿EstÃ¡ en memoria local?
+    // 1. ¿Está en memoria local?
     const local = window.localBibles[state.version];
     if (local && local[state.book.id]) {
         const bookData = local[state.book.id].content;
@@ -508,7 +508,7 @@ function initVerseCacheListener() {
                 renderVersesList(data.verses);
             }
         } else if (data.type === 'SEARCH_RESULTS' && state.view === 'verses') {
-             // Solo si no estamos haciendo bÃºsqueda local
+             // Solo si no estamos haciendo búsqueda local
              if (!window.localBibles[state.version]) renderSearchResults(data.results);
         }
     });
@@ -928,7 +928,7 @@ async function showPreview(song) {
                 lyricsEl.textContent = "Error: Letra no encontrada. Usa 'Exportar Letras' en la PC.";
             }
         } catch (e) {
-            lyricsEl.textContent = "Error de conexiÃ³n: " + e.message;
+            lyricsEl.textContent = "Error de conexión: " + e.message;
         }
     }
     const footer = document.getElementById('modalPreviewFooter');
@@ -960,11 +960,11 @@ function addItemToCart(type, item) {
         document.getElementById('btnConfirmObs').onclick = () => {
             addItemToCartFinal(type, item, input.value.trim());
             modal.classList.add('hidden');
-            showNotification("Â¡AÃ±adido a la lista de envÃ­o!", "success");
+            showNotification("¡Añadido a la lista de envío!", "success");
         };
     } else {
         addItemToCartFinal(type, item, "");
-        showNotification("Â¡AÃ±adido!", "success");
+        showNotification("¡Añadido!", "success");
     }
 }
 
@@ -1034,7 +1034,7 @@ function removeItemFromCart(type, index) {
 }
 
 function clearCart() {
-    showConfirm("Â¿Deseas vaciar toda la lista seleccionada?", () => {
+    showConfirm("¿Deseas vaciar toda la lista seleccionada?", () => {
         window.cart = { bible: [], songs: [] };
         saveCartState();
         renderCart();
@@ -1110,7 +1110,7 @@ async function handleGlobalSend() {
             timeStr: new Date().toLocaleTimeString()
         });
 
-        // Restaurar botÃ³n ANTES de renderizar el carrito (para que el badge exista de nuevo)
+        // Restaurar botón ANTES de renderizar el carrito (para que el badge exista de nuevo)
         btn.disabled = false;
         btn.innerHTML = oldHtml;
 
@@ -1120,14 +1120,14 @@ async function handleGlobalSend() {
         saveCartState();
         
         renderCart(); 
-        showNotification("Â¡PeticiÃ³n enviada exitosamente!", "success");
-        // Volver a biblias despuÃ©s de enviar
+        showNotification("¡Petición enviada exitosamente!", "success");
+        // Volver a biblias después de enviar
         const bibleTab = document.querySelector('.tab-btn[data-tab="biblias"]');
         if (bibleTab) bibleTab.click();
     } catch (e) {
         console.error("Send error:", e);
         showNotification("Error al enviar: " + e.message, "error");
-        // Asegurar restauraciÃ³n en caso de error
+        // Asegurar restauración en caso de error
         btn.disabled = false;
         btn.innerHTML = oldHtml;
     } finally {
@@ -1216,11 +1216,11 @@ async function handleNoteSend() {
             texto: txt,
             categoria: document.getElementById('noteCategory').value,
             fecha: new Date().toISOString().split('T')[0],
-            usuario: document.getElementById('userName').textContent || 'LÃ­der',
+            usuario: document.getElementById('userName').textContent || 'Líder',
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         document.getElementById('noteText').value = '';
-        showNotification("Â¡Nota enviada al equipo!", "success");
+        showNotification("¡Nota enviada al equipo!", "success");
     } catch(e) { showNotification(e.message, "error"); }
     bt.disabled = false;
 }
