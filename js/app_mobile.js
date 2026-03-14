@@ -580,6 +580,7 @@ function renderVersesList(verses) {
     if (headerTitle) headerTitle.textContent = "MARCA LOS VERSÃCULOS";
     container.innerHTML = '';
     window.bibleState.selectedVerses = [];
+    window.bibleState.currentVerses = verses; // Guardar versículos actuales para recuperar el texto después
 
     if (!verses || verses.length === 0) {
         container.innerHTML = '<div class="empty-state">No hay versÃ­culos.</div>';
@@ -640,7 +641,7 @@ function renderSearchResults(results) {
             <div style="font-size:0.95rem; line-height:1.5; color:#fff;">${r.texto}</div>
         `;
         el.onclick = () => {
-             addItemToCart('bible', r.cita);
+             addItemToCart('bible', { cita: r.cita, texto: r.texto });
              
              // Feedback visual mejorado
              const icon = el.querySelector('i');
@@ -701,7 +702,18 @@ function addSelectedVersesToCart() {
     const rangeStr = groups.join(', ');
     const verAbbr = state.version.split('-').pop().trim();
     const cite = `${verAbbr} ${state.book.name} ${state.chapter}:${rangeStr}`;
-    addItemToCart('bible', cite);
+
+    // Recopilar el texto completo de los versículos seleccionados
+    let fullText = "";
+    if (state.currentVerses) {
+        fullText = state.currentVerses
+            .filter(v => state.selectedVerses.includes(v.verse))
+            .sort((a, b) => a.verse - b.verse)
+            .map(v => `${v.verse}. ${v.text}`)
+            .join("\n");
+    }
+
+    addItemToCart('bible', { cita: cite, texto: fullText });
     bibleBack();
 }
 
@@ -1082,19 +1094,34 @@ function renderCart(type) {
     container.innerHTML = '';
     window.cart[type].forEach((entry, idx) => {
         const item = entry.data;
-        const display = item.titulo || item.texto || (typeof item === 'string' ? item : "Elemento");
-        const obs = entry.obs ? `<div class="cart-item-obs" style="font-size:0.7rem; color: var(--ocher-base); margin-top:2px; font-style: italic; opacity: 0.8;">Nota: ${entry.obs}</div>` : "";
+        let displayHtml = "";
+        
+        if (typeof item === 'object' && item.cita && item.texto) {
+            // Nuevo formato detallado para Biblias
+            displayHtml = `
+                <div style="font-size:0.9rem; line-height:1.4; color: #fff; margin-bottom: 4px; white-space: pre-wrap;">${item.texto}</div>
+                <div style="font-size:0.75rem; color:var(--ocher-light); font-weight:800; text-transform: uppercase;">${item.cita}</div>
+            `;
+        } else {
+            // Formato estándar (Canciones o formato viejo)
+            const display = item.titulo || item.texto || (typeof item === 'string' ? item : "Elemento");
+            displayHtml = `<div style="font-weight:700; color:white;">${display}</div>`;
+        }
+
+        const obs = entry.obs ? `<div class="cart-item-obs" style="font-size:0.7rem; color: var(--ocher-base); margin-top:5px; font-style: italic; opacity: 0.9; border-top: 1px solid rgba(212,175,55,0.2); padding-top: 3px;">
+            <i class="fa-solid fa-comment-dots"></i> ${entry.obs}
+        </div>` : "";
         
         const row = document.createElement('div');
         row.className = 'cart-item';
-        row.style = "background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid var(--ocher-base);";
+        row.style = "background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--ocher-base); box-shadow: 0 2px 5px rgba(0,0,0,0.2);";
         row.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1;">
-                    <div style="font-weight:700; color:white;">${display}</div>
+                    ${displayHtml}
                     ${obs}
                 </div>
-                <i class="fa-trash-can fa-solid" style="color:#e74c3c; cursor:pointer; padding:5px;" onclick="removeItemFromCart('${type}', ${idx})"></i>
+                <i class="fa-trash-can fa-solid" style="color:#e74c3c; cursor:pointer; padding:5px; font-size: 1.1rem; margin-left:10px;" onclick="removeItemFromCart('${type}', ${idx})"></i>
             </div>`;
         container.appendChild(row);
     });
