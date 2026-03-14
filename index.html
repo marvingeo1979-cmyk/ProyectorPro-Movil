@@ -257,20 +257,20 @@
 
 
                 <!-- Panel 5: LISTA DE ENVÍO (Centralizado) -->
-                <div class="panel" data-id="cart">
-                    <div class="panel-header-mini">
+                <div class="panel" data-id="cart" style="overflow: hidden; padding-bottom: 0;">
+                    <div class="panel-header-mini" style="flex-shrink: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
                                 <h2>Lista de Envío</h2>
                                 <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Revisa tu selección antes de enviar</p>
                             </div>
-                            <button onclick="clearCart()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.7rem;">
+                            <button onclick="clearCart()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
                                 <i class="fa-solid fa-trash"></i> VACIAR
                             </button>
                         </div>
                     </div>
 
-                    <div id="unifiedCartContent" style="display: flex; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto;">
+                    <div id="unifiedCartContent" style="display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 5px;">
                         <div class="cart-section">
                             <div class="mobile-list-header">Citas Bíblicas</div>
                             <div id="bibleCart" class="mobile-grid-list"></div>
@@ -281,17 +281,20 @@
                         </div>
                     </div>
 
-                    <div class="obs-wrap" style="margin-top: 10px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border);">
-                        <label style="font-size: 0.7rem; color: var(--ocher-base); font-weight: 800; margin-bottom: 10px; display: block; text-transform: uppercase;">Observaciones del Envío</label>
-                        <textarea id="globalObservations" class="mobile-textarea" placeholder="Ej: Leer después del coro..." style="min-height: 80px;"></textarea>
-                    </div>
+                    <!-- Footer fijo del carrito -->
+                    <div class="cart-footer" style="flex-shrink: 0; background: var(--bg-dark); border-top: 1px solid var(--glass-border); padding-top: 10px;">
+                        <div class="obs-wrap" style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <label style="font-size: 0.65rem; color: var(--ocher-base); font-weight: 800; margin-bottom: 8px; display: block; text-transform: uppercase;">Observaciones del Envío</label>
+                            <textarea id="globalObservations" class="mobile-textarea" placeholder="Ej: Leer después del coro..." style="min-height: 60px; font-size: 0.85rem;"></textarea>
+                        </div>
 
-                    <div style="margin-top: 10px;">
-                        <button id="btnSendToCloud" class="btn-cloud-send" disabled style="width: 100%; padding: 1.2rem;">
-                            <i class="fa-solid fa-paper-plane"></i> ENVIAR
-                        </button>
+                        <div style="margin-top: 10px; padding-bottom: 10px;">
+                            <button id="btnSendToCloud" class="btn-cloud-send" disabled style="width: 100%; padding: 1rem; font-size: 1rem;">
+                                <i class="fa-solid fa-paper-plane"></i> ENVIAR
+                            </button>
+                        </div>
+                        <div style="height: 120px;"></div> <!-- Espacio para teclado -->
                     </div>
-                    <div style="height: 120px;"></div> <!-- Espacio para teclado -->
                 </div>
             </div>
         </main>
