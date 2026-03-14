@@ -1460,9 +1460,11 @@ function initSongFavoritesListener() {
     db.collection('cantos_favoritos').doc('master').onSnapshot(doc => {
         if (doc.exists) {
             songFavorites = doc.data().lista || [];
+            console.log(`[Mobile] Favoritos actualizados: ${songFavorites.length} canciones.`);
             renderSongFavorites();
         } else {
             songFavorites = [];
+            console.warn("[Mobile] El documento de favoritos no existe en la nube.");
             renderSongFavorites();
         }
     }, err => {
@@ -1482,14 +1484,17 @@ function renderSongFavorites(filter = "") {
     if (!list) return;
 
     if (songFavorites.length === 0) {
-        list.innerHTML = '<div class="empty-state">No hay canciones en favoritos.</div>';
+        list.innerHTML = '<div class="empty-state">No hay canciones en favoritos aún.</div>';
         return;
     }
 
-    const filtered = songFavorites.filter(s => 
-        s.title.toLowerCase().includes(filter) || 
-        (s.tono && s.tono.toLowerCase().includes(filter))
-    );
+    const normalizedFilter = (filter || "").toLowerCase().trim();
+
+    const filtered = songFavorites.filter(s => {
+        const title = (s.title || "").toLowerCase();
+        const tono = (s.tono || "").toLowerCase();
+        return title.includes(normalizedFilter) || tono.includes(normalizedFilter);
+    });
 
     if (filtered.length === 0) {
         list.innerHTML = '<div class="empty-state">No se encontraron resultados en favoritos.</div>';
@@ -1497,11 +1502,13 @@ function renderSongFavorites(filter = "") {
     }
 
     let html = '';
-    filtered.forEach((s, idx) => {
+    filtered.forEach((s) => {
+        // Encontrar el índice REAL en la lista original para que el preview funcione
+        const originalIdx = songFavorites.findIndex(fav => fav.title === s.title && fav.lyrics === s.lyrics);
         html += `
-            <div class="cloud-song-item" onclick="showFavoriteLyrics(${idx})">
+            <div class="cloud-song-item" onclick="showFavoriteLyrics(${originalIdx})">
                 <div style="flex:1;">
-                    <div class="song-name-main">${s.title}</div>
+                    <div class="song-name-main">${s.title || "Sin título"}</div>
                     ${s.tono ? `<div style="font-size:0.75rem; color:var(--ocher-light); margin-top:2px;">Tono: ${s.tono}</div>` : ''}
                 </div>
                 <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem;"></i>
