@@ -1503,12 +1503,15 @@ function renderSongFavorites(filter = "") {
 
     let html = '';
     filtered.forEach((s) => {
-        // Encontrar el índice REAL en la lista original para que el preview funcione
-        const originalIdx = songFavorites.findIndex(fav => fav.title === s.title && fav.lyrics === s.lyrics);
+        const sTitle = s.titulo || s.title || "Sin título";
+        const sLyrics = s.letra || s.lyrics || "";
+        // Encontrar el índice REAL en la lista original
+        const originalIdx = songFavorites.findIndex(fav => (fav.titulo === sTitle || fav.title === sTitle) && (fav.letra === sLyrics || fav.lyrics === sLyrics));
+        
         html += `
             <div class="cloud-song-item" onclick="showFavoriteLyrics(${originalIdx})">
                 <div style="flex:1;">
-                    <div class="song-name-main">${s.title || "Sin título"}</div>
+                    <div class="song-name-main">${sTitle}</div>
                     ${s.tono ? `<div style="font-size:0.75rem; color:var(--ocher-light); margin-top:2px;">Tono: ${s.tono}</div>` : ''}
                 </div>
                 <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem;"></i>
@@ -1528,8 +1531,11 @@ window.showFavoriteLyrics = function(idx) {
     const lyrics = document.getElementById('previewLyrics');
     const footer = document.getElementById('modalPreviewFooter');
 
-    title.textContent = song.title + (song.tono ? ` (${song.tono})` : '');
-    lyrics.textContent = song.lyrics || "Sin letra registrada.";
+    const sTitle = song.titulo || song.title || "Sin título";
+    const sLyrics = song.letra || song.lyrics || "Sin letra registrada.";
+
+    title.textContent = sTitle + (song.tono ? ` (${song.tono})` : '');
+    lyrics.textContent = sLyrics;
     
     // Ocultar botón de añadir al carrito porque esto es consulta de favoritos
     if (footer) footer.style.display = 'none';
