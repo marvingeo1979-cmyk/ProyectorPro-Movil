@@ -398,35 +398,25 @@ function renderBibleVersions() {
 }
 
 async function downloadFullBible(versionName) {
-    // Try to find the card specifically to animate it
-    const cards = document.querySelectorAll('.version-card');
-    let targetCard = null;
-    cards.forEach(c => {
-        if (c.querySelector('.v-name').textContent.trim() === versionName) {
-            targetCard = c;
-        }
-    });
-
-    if (targetCard) {
-        targetCard.style.opacity = '0.6';
-        targetCard.style.pointerEvents = 'none';
-        targetCard.innerHTML = `
-            <div class="v-name" style="width:100%; text-align:center;">
-                <i class="fa-solid fa-spinner fa-spin" style="margin-right:8px; color:var(--ocher-light);"></i>
-            </div>`;
-    }
+    // Try to find the button even if called without event
+    const btn = (window.event && window.event.target && window.event.target.tagName === 'DIV') ? window.event.target : null;
+    const oldHtml = btn ? btn.innerHTML : '';
     
-    // Mostrar Toast Persistente
-    const loadingToast = document.createElement('div');
-    loadingToast.className = 'in-app-toast active';
-    loadingToast.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--ocher-light); margin-right:8px;"></i> Descargando Biblia...`;
-    document.body.appendChild(loadingToast);
+    if (btn) {
+        btn.innerHTML = 'â³ Descargando...';
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
+    }
     
     try {
         const snapshot = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').get();
         if (snapshot.empty) {
-            loadingToast.remove();
-            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga por el servidor.`, "error");
+            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga.`, "error");
+            if (btn) {
+                btn.innerHTML = oldHtml;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
             renderBibleVersions();
             return;
         }
@@ -440,15 +430,18 @@ async function downloadFullBible(versionName) {
         window.localBibles[versionName] = fullText;
         await MobileDB.saveBible(versionName, fullText);
         
-        loadingToast.remove();
-        showNotification(`¡${versionName} descargada y lista!`, "success");
+        showNotification(`¡${versionName} descargada!`, "success");
         showBibleView('books');
     } catch (e) {
         console.error("Download error:", e);
-        loadingToast.remove();
-        showNotification("Error de descarga. Verifica tu conexión.", "error");
-        renderBibleVersions();
+        showNotification("Error de descarga: " + e.message, "error");
+        if (btn) {
+            btn.innerHTML = oldHtml;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }
     }
+    renderBibleVersions();
 }
 
 function renderBibleBooks() {
