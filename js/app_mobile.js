@@ -11,13 +11,15 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 💾 Habilitar Persistencia Offline (Para periodos de suspensión o falta de red)
-db.enablePersistence({ synchronizeTabs: true })
+// 💾 Habilitar Persistencia Offline (Optimizado para Móvil)
+db.enablePersistence({ synchronizeTabs: false }) // Desactivamos sync de pestañas para evitar errores de estado interno en móviles
   .catch((err) => {
     if (err.code == 'failed-precondition') {
-        console.warn("[Firebase] Persistencia falló: múltiples pestañas abiertas.");
+        console.warn("[Firebase] Persistencia falló: Puede que la app esté abierta en otra pestaña.");
     } else if (err.code == 'unimplemented') {
         console.warn("[Firebase] Persistencia no soportada por este navegador.");
+    } else {
+        console.error("[Firebase] Error de persistencia desconocido:", err);
     }
   });
 
@@ -444,9 +446,13 @@ async function downloadFullBible(versionName) {
     }
     
     try {
+        if (!versionName) throw new Error("Nombre de versión no válido.");
+
+        const masterDoc = await db.collection('biblioteca_biblias').doc('master').get();
         const snapshot = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').get();
+        
         if (snapshot.empty) {
-            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga.`, "error");
+            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga completa desde la PC.`, "error");
             if (btn) {
                 btn.innerHTML = oldHtml;
                 btn.style.opacity = '1';
@@ -465,11 +471,16 @@ async function downloadFullBible(versionName) {
         window.localBibles[versionName] = fullText;
         await MobileDB.saveBible(versionName, fullText);
         
-        showNotification(`¡${versionName} descargada!`, "success");
+        showNotification(`¡${versionName} descargada con éxito!`, "success");
         showBibleView('books');
     } catch (e) {
         console.error("Download error:", e);
-        showNotification("Error de descarga: " + e.message, "error");
+        // Si es un error de "Assertion failed", avisar que es por caché
+        if (e.message.includes("ASSERTION FAILED")) {
+            showNotification("Error interno del navegador. Por favor refresca la app y reintenta.", "error");
+        } else {
+            showNotification("Error de descarga: " + e.message, "error");
+        }
         if (btn) {
             btn.innerHTML = oldHtml;
             btn.style.opacity = '1';
