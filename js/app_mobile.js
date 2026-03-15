@@ -1597,6 +1597,13 @@ window.handleLogout = function() {
     showConfirm("¿Deseas cerrar la sesión activa?", () => {
         localStorage.removeItem('mobileUser');
         window.currentUser = null;
+        
+        // Limpiar campos de login
+        const loginUser = document.getElementById('loginUser');
+        const loginPass = document.getElementById('loginPass');
+        if (loginUser) loginUser.value = "";
+        if (loginPass) loginPass.value = "";
+
         checkUserSession(); // Cambia la vista instantáneamente sin recargar
     });
 };
