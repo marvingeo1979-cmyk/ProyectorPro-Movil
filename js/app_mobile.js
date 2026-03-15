@@ -148,12 +148,6 @@ const MobileDB = {
 
 /** ── INICIALIZACIÓN ── */
 document.addEventListener('DOMContentLoaded', async () => {
-    // 🚚 Verificar Instalación Inicial (Simulada)
-    const isFirstRun = localStorage.getItem('mobile_first_run') === null;
-    if (isFirstRun) {
-        await runInitialInstallation();
-    }
-
     // Inicializar almacenamiento local antes que nada
     try {
         await MobileDB.init();
@@ -252,43 +246,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initStatusIndicators();
 });
 
-/** ── INSTALACIÓN INICIAL ── */
-async function runInitialInstallation() {
-    const app = document.getElementById('app-mobile');
-    const screen = document.getElementById('installingScreen');
-    const progress = document.getElementById('installProgress');
-    const status = document.getElementById('installStatus');
-    if (!screen || !progress || !app) return;
-
-    app.classList.remove('hidden');
-    screen.classList.remove('hidden');
-    
-    const steps = [
-        { p: 10, t: "Descargando esquemas de base de datos..." },
-        { p: 30, t: "Configurando almacenamiento local seguro..." },
-        { p: 55, t: "Sincronizando biblioteca de canciones..." },
-        { p: 75, t: "Preparando interfaz táctil de alta velocidad..." },
-        { p: 90, t: "Finalizando configuraciones del sistema..." },
-        { p: 100, t: "¡Instalación completada!" }
-    ];
-
-    for (const step of steps) {
-        status.textContent = step.t;
-        progress.style.width = step.p + "%";
-        // Simulamos un tiempo de carga variable para que se sienta real
-        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
-    }
-
-    // Guardar marca de que ya se instaló
-    localStorage.setItem('mobile_first_run', 'done');
-    
-    // Desvanecer pantalla
-    screen.style.transition = "opacity 0.6s ease";
-    screen.style.opacity = "0";
-    await new Promise(resolve => setTimeout(resolve, 600));
-    screen.classList.add('hidden');
-}
-
 /** ── COMUNICACIÓN CON LA NUBE ── */
 function initCloudListeners() {
     console.log("[Mobile] Conectado a la nube.");
@@ -302,10 +259,41 @@ function initCloudListeners() {
         }
     });
 
-    db.collection('biblioteca_cantos').doc('master').onSnapshot(doc => {
-        if (doc.exists) {
-            window.cloudSongs = doc.data().lista || [];
+    db.collection('biblioteca_cantos').doc('master').onSnapshot(async doc => {
+        if (!doc.exists) return;
+        
+        const data = doc.data();
+        const numChunks = data.numChunks || 0;
+        
+        if (numChunks > 0) {
+            console.log(`[Sync] Detectados ${numChunks} bloques de canciones...`);
+            try {
+                const promises = [];
+                for (let i = 0; i < numChunks; i++) {
+                    promises.push(db.collection('biblioteca_cantos').doc(`chunk_${i}`).get());
+                }
+                const snapshots = await Promise.all(promises);
+                let allSongs = [];
+                snapshots.forEach(s => {
+                    if (s.exists) {
+                        allSongs = allSongs.concat(s.data().lista || []);
+                    }
+                });
+                
+                // Ordenar alfabéticamente
+                allSongs.sort((a,b) => (a.titulo || a.title || "").localeCompare(b.titulo || b.title || ""));
+                
+                window.cloudSongs = allSongs;
+                renderSongLibrary(window.cloudSongs);
+                console.log(`[Sync] ${window.cloudSongs.length} canciones reconstruidas con éxito.`);
+            } catch (err) {
+                console.error("[Sync] Error al reconstruir bloques:", err);
+            }
+        } else if (data.lista) {
+            // Soporte para formato antiguo (un solo doc)
+            window.cloudSongs = data.lista;
             renderSongLibrary(window.cloudSongs);
+            console.log(`[Sync] ${window.cloudSongs.length} canciones cargadas (Formato antiguo).`);
         }
     });
 
@@ -1360,8 +1348,13 @@ function initSearch() {
                 if (raw) songClear.classList.remove('hidden');
                 else songClear.classList.add('hidden');
             }
-            // Filtrado ignorando acentos y mayÃºsculas
-            renderSongLibrary(window.cloudSongs.filter(s => normalizeText(s.titulo).includes(q)));
+            // Filtrado ignorando acentos y mayúsculas (Busca en título y letra)
+            const filtered = window.cloudSongs.filter(s => {
+                const titleMatch = normalizeText(s.titulo || s.title || "").includes(q);
+                const lyricsMatch = normalizeText(s.letra || s.lyrics || "").includes(q);
+                return titleMatch || lyricsMatch;
+            });
+            renderSongLibrary(filtered);
         };
     }
     
@@ -1581,9 +1574,11 @@ function renderSongFavorites(filter = "") {
     const normalizedFilter = (filter || "").toLowerCase().trim();
 
     const filtered = songFavorites.filter(s => {
-        const title = (s.title || "").toLowerCase();
-        const tono = (s.tono || "").toLowerCase();
-        return title.includes(normalizedFilter) || tono.includes(normalizedFilter);
+        const title = normalizeText(s.titulo || s.title || "");
+        const tono = normalizeText(s.tono || "");
+        const lyrics = normalizeText(s.letra || s.lyrics || "");
+        const q = normalizedFilter; // normalizedFilter ya es lowecase y trim
+        return title.includes(q) || tono.includes(q) || lyrics.includes(q);
     });
 
     if (filtered.length === 0) {
