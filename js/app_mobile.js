@@ -148,6 +148,12 @@ const MobileDB = {
 
 /** ── INICIALIZACIÓN ── */
 document.addEventListener('DOMContentLoaded', async () => {
+    // 🚚 Verificar Instalación Inicial (Simulada)
+    const isFirstRun = localStorage.getItem('mobile_first_run') === null;
+    if (isFirstRun) {
+        await runInitialInstallation();
+    }
+
     // Inicializar almacenamiento local antes que nada
     try {
         await MobileDB.init();
@@ -245,6 +251,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initStatusIndicators();
 });
+
+/** ── INSTALACIÓN INICIAL ── */
+async function runInitialInstallation() {
+    const app = document.getElementById('app-mobile');
+    const screen = document.getElementById('installingScreen');
+    const progress = document.getElementById('installProgress');
+    const status = document.getElementById('installStatus');
+    if (!screen || !progress || !app) return;
+
+    app.classList.remove('hidden');
+    screen.classList.remove('hidden');
+    
+    const steps = [
+        { p: 10, t: "Descargando esquemas de base de datos..." },
+        { p: 30, t: "Configurando almacenamiento local seguro..." },
+        { p: 55, t: "Sincronizando biblioteca de canciones..." },
+        { p: 75, t: "Preparando interfaz táctil de alta velocidad..." },
+        { p: 90, t: "Finalizando configuraciones del sistema..." },
+        { p: 100, t: "¡Instalación completada!" }
+    ];
+
+    for (const step of steps) {
+        status.textContent = step.t;
+        progress.style.width = step.p + "%";
+        // Simulamos un tiempo de carga variable para que se sienta real
+        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
+    }
+
+    // Guardar marca de que ya se instaló
+    localStorage.setItem('mobile_first_run', 'done');
+    
+    // Desvanecer pantalla
+    screen.style.transition = "opacity 0.6s ease";
+    screen.style.opacity = "0";
+    await new Promise(resolve => setTimeout(resolve, 600));
+    screen.classList.add('hidden');
+}
 
 /** ── COMUNICACIÓN CON LA NUBE ── */
 function initCloudListeners() {

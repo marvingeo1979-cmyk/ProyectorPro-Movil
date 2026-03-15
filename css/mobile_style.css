@@ -516,6 +516,24 @@ body {
     color: var(--ocher-base);
 }
 
+/* ── PROGRESS BAR MOBILE ── */
+.progress-container-mobile {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.progress-bar-mobile {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--wine-accent) 0%, var(--ocher-base) 100%);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    transition: width 0.3s ease;
+}
+
 /* ── LIST ITEMS INTERNALS ── */
 .mobile-li.search-icon-overlay {
     position: absolute;
