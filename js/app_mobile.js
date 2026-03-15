@@ -1597,7 +1597,7 @@ window.handleLogout = function() {
     showConfirm("¿Deseas cerrar la sesión activa?", () => {
         localStorage.removeItem('mobileUser');
         window.currentUser = null;
-        location.reload();
+        checkUserSession(); // Cambia la vista instantáneamente sin recargar
     });
 };
 
