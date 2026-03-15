@@ -157,14 +157,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const splashProgress = document.getElementById('installProgress');
     const app = document.getElementById('app-mobile');
 
-    // 1. Mostrar Splash inicial (y asegurar que el contenedor principal sea visible)
+    // 1. Mostrar Splash solo si es la primera vez o se borraron datos
+    const isInitialized = localStorage.getItem('mobile_initialized');
     if (app) app.classList.remove('hidden');
-    if (splash) {
+    
+    if (!isInitialized && splash) {
         splash.classList.remove('hidden');
         if (splashProgress) splashProgress.style.width = '15%';
+        const login = document.getElementById('loginScreen');
+        if (login) login.classList.add('hidden'); // Ocultar login mientras carga splash
+    } else {
+        if (splash) splash.classList.add('hidden');
     }
-    const login = document.getElementById('loginScreen');
-    if (login) login.classList.add('hidden'); // Ocultar login mientras carga
 
     // 2. Inicializar almacenamiento local
     try {
@@ -201,7 +205,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             checkUserSession(); // Esto decide si mostrar login o dashboard
             if (splash) {
                 splash.style.opacity = '0';
-                setTimeout(() => splash.classList.add('hidden'), 500);
+                setTimeout(() => {
+                    splash.classList.add('hidden');
+                    localStorage.setItem('mobile_initialized', 'true'); // Marcar como inicializado
+                }, 500);
             }
             if (splashProgress) splashProgress.style.width = '100%';
         }, 800);
