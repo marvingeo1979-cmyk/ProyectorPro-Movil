@@ -486,7 +486,14 @@ function renderBibleVersions() {
                      downloadFullBible(v.id);
                  });
              } else {
-    async function downloadFullBible(versionName) {
+                 showBibleView('books');
+             }
+        };
+        container.appendChild(el);
+    });
+}
+
+async function downloadFullBible(versionName) {
     const btn = (window.event && window.event.target && (window.event.target.tagName === 'DIV' || window.event.target.classList.contains('v-status'))) ? window.event.target : null;
     const oldHtml = btn ? btn.innerHTML : '';
     
@@ -503,7 +510,8 @@ function renderBibleVersions() {
         const masterDoc = await db.collection('biblioteca_biblias').doc('master').get();
         if (!masterDoc.exists) throw new Error("No se pudo conectar con la base de datos de Biblias.");
         
-        const booksList = masterDoc.data().libros || [];
+        const data = masterDoc.data();
+        const booksList = data.libros || [];
         if (booksList.length === 0) throw new Error("No hay información de libros disponible.");
 
         const fullText = {};
@@ -531,7 +539,7 @@ function renderBibleVersions() {
         }
 
         if (Object.keys(fullText).length === 0) {
-            throw new Error(`La Biblia "${versionName}" no tiene contenido en la nube. Por favor, re-pórtala desde la PC.`);
+            throw new Error(`La Biblia "${versionName}" no tiene contenido en la nube.`);
         }
 
         // 3. Guardar localmente
@@ -541,15 +549,12 @@ function renderBibleVersions() {
         showNotification(`¡${versionName} descargada con éxito!`, "success", "bible-dl");
         showBibleView('books');
     } catch (e) {
-  showNotification(`¡${versionName} descargada con éxito!`, "success");
-        showBibleView('books');
-    } catch (e) {
         console.error("Download error:", e);
         // Si es un error de "Assertion failed", avisar que es por caché
         if (e.message.includes("ASSERTION FAILED")) {
-            showNotification("Error interno del navegador. Por favor refresca la app y reintenta.", "error");
+            showNotification("Error interno del navegador. Refresca y reintenta.", "error", "bible-dl");
         } else {
-            showNotification("Error de descarga: " + e.message, "error");
+            showNotification("Error: " + e.message, "error", "bible-dl");
         }
         if (btn) {
             btn.innerHTML = oldHtml;
