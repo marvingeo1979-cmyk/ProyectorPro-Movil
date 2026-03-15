@@ -486,20 +486,12 @@ function renderBibleVersions() {
                      downloadFullBible(v.id);
                  });
              } else {
-                 showBibleView('books');
-             }
-        };
-        container.appendChild(el);
-    });
-}
-
-async function downloadFullBible(versionName) {
-    // Try to find the button even if called without event
-    const btn = (window.event && window.event.target && window.event.target.tagName === 'DIV') ? window.event.target : null;
+    async function downloadFullBible(versionName) {
+    const btn = (window.event && window.event.target && (window.event.target.tagName === 'DIV' || window.event.target.classList.contains('v-status'))) ? window.event.target : null;
     const oldHtml = btn ? btn.innerHTML : '';
     
     if (btn) {
-        btn.innerHTML = 'â³ Descargando...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Iniciando...';
         btn.style.opacity = '0.5';
         btn.style.pointerEvents = 'none';
     }
@@ -507,30 +499,49 @@ async function downloadFullBible(versionName) {
     try {
         if (!versionName) throw new Error("Nombre de versión no válido.");
 
+        // 1. Obtener lista de libros desde el master
         const masterDoc = await db.collection('biblioteca_biblias').doc('master').get();
-        const snapshot = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').get();
+        if (!masterDoc.exists) throw new Error("No se pudo conectar con la base de datos de Biblias.");
         
-        if (snapshot.empty) {
-            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga completa. Por favor, ve a la PC y pulsa el botón "Exportar Biblia a Móvil" seleccionando esta versión.`, "error");
-            if (btn) {
-                btn.innerHTML = oldHtml;
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            }
-            renderBibleVersions();
-            return;
-        }
+        const booksList = masterDoc.data().libros || [];
+        if (booksList.length === 0) throw new Error("No hay información de libros disponible.");
 
         const fullText = {};
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            fullText[data.id] = data;
-        });
+        const total = booksList.length;
+        
+        showNotification(`Iniciando descarga de ${versionName}...`, "info", "bible-dl");
 
+        // 2. Descargar libro por libro (Secuencial para evitar saturar el móvil)
+        for (let i = 0; i < total; i++) {
+            const book = booksList[i];
+            
+            // Actualizar UI del botón y notificación
+            if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${i+1}/${total}`;
+            if (i % 5 === 0 || i === total - 1) {
+                showNotification(`Descargando ${versionName}: libro ${i+1} de ${total}...`, "info", "bible-dl");
+            }
+
+            const docPlan = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').doc(String(book.id)).get();
+            
+            if (docPlan.exists) {
+                fullText[book.id] = docPlan.data();
+            } else {
+                console.warn(`[Bible] Libro ${book.id} (${book.name}) no encontrado en la nube.`);
+            }
+        }
+
+        if (Object.keys(fullText).length === 0) {
+            throw new Error(`La Biblia "${versionName}" no tiene contenido en la nube. Por favor, re-pórtala desde la PC.`);
+        }
+
+        // 3. Guardar localmente
         window.localBibles[versionName] = fullText;
         await MobileDB.saveBible(versionName, fullText);
         
-        showNotification(`¡${versionName} descargada con éxito!`, "success");
+        showNotification(`¡${versionName} descargada con éxito!`, "success", "bible-dl");
+        showBibleView('books');
+    } catch (e) {
+  showNotification(`¡${versionName} descargada con éxito!`, "success");
         showBibleView('books');
     } catch (e) {
         console.error("Download error:", e);
