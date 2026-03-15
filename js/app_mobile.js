@@ -207,8 +207,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 splash.style.opacity = '0';
                 setTimeout(() => {
                     splash.classList.add('hidden');
-                    localStorage.setItem('mobile_initialized', 'true'); // Marcar como inicializado
+                    localStorage.setItem('mobile_initialized', 'true'); // Marcar como inicializado inmediatamente
                 }, 500);
+            } else {
+                localStorage.setItem('mobile_initialized', 'true');
             }
             if (splashProgress) splashProgress.style.width = '100%';
         }, 800);
@@ -459,13 +461,19 @@ function renderBibleVersions() {
 
     window.bibleVersions.forEach(v => {
         const isDownloaded = !!window.localBibles[v.id];
+        const isPrepared = !!v.preparada;
         const el = document.createElement('div');
         el.className = 'version-card';
+        
+        let statusClass = isDownloaded ? 'status-inst' : (isPrepared ? 'status-dl' : 'status-pending');
+        let statusText = isDownloaded ? 'INSTALADA' : (isPrepared ? 'DESCARGAR' : 'NO PREPARADA');
+        let statusIcon = isDownloaded ? 'fa-circle-check' : (isPrepared ? 'fa-cloud-arrow-down' : 'fa-triangle-exclamation');
+
         el.innerHTML = `
             <div class="v-name" title="${v.nombre || v.id}">${v.nombre || v.id}</div>
-            <div class="v-status ${isDownloaded ? 'status-inst' : 'status-dl'}">
-                <i class="fa-solid ${isDownloaded ? 'fa-circle-check v-icon' : 'fa-cloud-arrow-down v-icon'}"></i>
-                ${isDownloaded ? 'INSTALADA' : 'DESCARGAR'}
+            <div class="v-status ${statusClass}">
+                <i class="fa-solid ${statusIcon} v-icon"></i>
+                ${statusText}
             </div>
         `;
         
@@ -503,7 +511,7 @@ async function downloadFullBible(versionName) {
         const snapshot = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').get();
         
         if (snapshot.empty) {
-            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga completa desde la PC.`, "error");
+            showNotification(`La Biblia "${versionName}" aún no ha sido preparada para descarga completa. Por favor, ve a la PC y pulsa el botón "Exportar Biblia a Móvil" seleccionando esta versión.`, "error");
             if (btn) {
                 btn.innerHTML = oldHtml;
                 btn.style.opacity = '1';

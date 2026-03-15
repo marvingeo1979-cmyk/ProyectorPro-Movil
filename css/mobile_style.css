@@ -796,6 +796,11 @@ body {
     opacity: 0.8;
 }
 
+.version-card .status-pending {
+    color: #e74c3c; /* Rojo/Naranja */
+    font-weight: 800;
+}
+
 .version-card .v-icon {
     font-size: 0.7rem;
 }
