@@ -27,9 +27,11 @@ db.enablePersistence({ synchronizeTabs: false }) // Desactivamos sync de pestañ
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         console.log("[Mobile] App despertó. Verificando conexiones...");
-        // Forzar a firebase a reconectar si es necesario
         firebase.firestore().enableNetwork()
-            .then(() => console.log("[Firebase] Red reactivada con éxito."))
+            .then(() => {
+                console.log("[Firebase] Red reactivada con éxito.");
+                // Forzar refresco de listeners críticos si es necesario
+            })
             .catch(err => console.warn("[Firebase] Error reactivando red:", err));
     }
 });
@@ -150,56 +152,89 @@ const MobileDB = {
 
 /** ── INICIALIZACIÓN ── */
 document.addEventListener('DOMContentLoaded', async () => {
-    // Inicializar almacenamiento local antes que nada
-    try {
-        await MobileDB.init();
-        window.localBibles = await MobileDB.getAllBibles();
-        console.log("[Persistence] Biblias locales restauradas:", Object.keys(window.localBibles));
-    } catch (e) {
-        console.warn("[Persistence] No se pudo cargar IndexedDB, usando memoria temporal:", e);
+    const splash = document.getElementById('installingScreen');
+    const splashStatus = document.getElementById('installStatus');
+    const splashProgress = document.getElementById('installProgress');
+    const app = document.getElementById('app-mobile');
+
+    // 1. Mostrar Splash inicial
+    if (splash) {
+        splash.classList.remove('hidden');
+        if (splashProgress) splashProgress.style.width = '10%';
     }
 
-    // Verificar sesión
-    checkUserSession();
+    // 2. Inicializar almacenamiento local
+    try {
+        if (splashStatus) splashStatus.textContent = "Cargando biblioteca local...";
+        await MobileDB.init();
+        window.localBibles = await MobileDB.getAllBibles();
+        if (splashProgress) splashProgress.style.width = '30%';
+        console.log("[Persistence] Biblias locales restauradas:", Object.keys(window.localBibles));
+    } catch (e) {
+        console.warn("[Persistence] Error cargando biblias locales:", e);
+    }
 
+    // 3. Inicializar Lógica de la App
+    if (splashStatus) splashStatus.textContent = "Conectando con la nube...";
     initPanels();
     initSearch();
     initCloudListeners();
     initVerseCacheListener();
     initNotesListener();
     
-    // Pequeño retardo para asegurar estabilidad de Firestore antes de favoritos
-    setTimeout(() => {
-        initSongFavoritesListener();
-    }, 500);
-    renderCart(); // Restaurar lo guardado
-    renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud'); // Carga rápida desde cache
+    if (splashProgress) splashProgress.style.width = '60%';
 
+    // 4. Pequeño delay para asegurar que Firestore conecte y cargue lo esencial
+    setTimeout(async () => {
+        if (splashStatus) splashStatus.textContent = "Cargando favoritos y preferencias...";
+        initSongFavoritesListener();
+        renderCart();
+        renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
+        
+        if (splashProgress) splashProgress.style.width = '90%';
+
+        // 5. Finalizar y mostrar la app
+        setTimeout(() => {
+            checkUserSession(); // Esto decide si mostrar login o dashboard
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.classList.add('hidden'), 500);
+            }
+            if (splashProgress) splashProgress.style.width = '100%';
+        }, 800);
+    }, 1500);
+
+    // Configurar botones globales
     document.getElementById('btnSendToCloud').onclick = handleGlobalSend;
     if (document.getElementById('btnSendManualAnn')) document.getElementById('btnSendManualAnn').onclick = handleManualAnnSend;
     if (document.getElementById('btnCancelAnnEdit')) document.getElementById('btnCancelAnnEdit').onclick = cancelAnnEdit;
     if (document.getElementById('btnSendNote')) document.getElementById('btnSendNote').onclick = handleNoteSend;
     
-    document.getElementById('btnAddFromPreview').onclick = () => {
-        if (window.currentPreviewSong) {
-            addItemToCart('songs', window.currentPreviewSong);
-            closePreview();
-        }
-    };
+    const btnAdd = document.getElementById('btnAddFromPreview');
+    if (btnAdd) {
+        btnAdd.onclick = () => {
+            if (window.currentPreviewSong) {
+                addItemToCart('songs', window.currentPreviewSong);
+                closePreview();
+            }
+        };
+    }
 
-    // Toggle Formulario de Anuncios
+    initSyncFormLogic();
+    initStatusIndicators();
+});
+
+function initSyncFormLogic() {
     const btnToggleNewAnn = document.getElementById('btnToggleNewAnn');
     const annFormContainer = document.getElementById('annFormContainer');
     const annFormHeader = document.getElementById('annFormHeader');
 
-    if (btnToggleNewAnn) {
+    if (btnToggleNewAnn && annFormContainer) {
         btnToggleNewAnn.onclick = () => {
             if (annFormContainer.classList.contains('hidden')) {
-                cancelAnnEdit(); // Reset para nuevo
+                cancelAnnEdit();
                 annFormContainer.classList.remove('hidden');
                 if (annFormHeader) annFormHeader.classList.add('active');
-                
-                // Dar un pequeño tiempo para que el DOM se asiente
                 setTimeout(() => {
                     const titleEl = document.getElementById('manualAnnTitle');
                     if (titleEl) {
@@ -213,40 +248,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
     }
+    
     if (annFormHeader) {
         annFormHeader.onclick = () => {
-            annFormContainer.classList.add('hidden');
+            if (annFormContainer) annFormContainer.classList.add('hidden');
             annFormHeader.classList.remove('active');
         };
     }
 
-    // Mantener formulario a la vista al cerrar teclado
     const manualInputs = ['manualAnnTitle', 'manualAnnText', 'manualAnnTime'];
     manualInputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.onblur = () => {
                 setTimeout(() => {
-                    const active = document.activeElement;
-                    if (!manualInputs.includes(active.id)) {
-                        if (!annFormContainer.classList.contains('hidden')) {
-                            const panelAnuncios = document.querySelector('.panel[data-id="anuncios"]');
-                            const formHeader = document.getElementById('annFormHeader');
-                            if (panelAnuncios && formHeader) {
-                                panelAnuncios.scrollTo({
-                                    top: formHeader.offsetTop - 10,
-                                    behavior: 'smooth'
-                                });
-                            }
+                    if (annFormContainer && !annFormContainer.classList.contains('hidden')) {
+                        const panelAnuncios = document.querySelector('.panel[data-id="anuncios"]');
+                        const formHeader = document.getElementById('annFormHeader');
+                        if (panelAnuncios && formHeader) {
+                            panelAnuncios.scrollTo({
+                                top: formHeader.offsetTop - 10,
+                                behavior: 'smooth'
+                            });
                         }
                     }
                 }, 250);
             };
         }
     });
-
-    initStatusIndicators();
-});
+}
 
 /** ── COMUNICACIÓN CON LA NUBE ── */
 function initCloudListeners() {
@@ -269,18 +299,27 @@ function initCloudListeners() {
         
         if (numChunks > 0) {
             console.log(`[Sync] Detectados ${numChunks} bloques de canciones...`);
+            
+            // Usamos un semáforo sencillo para evitar múltiples cargas simultáneas
+            if (window.isFetchingChunks) return;
+            window.isFetchingChunks = true;
+
             try {
-                const promises = [];
-                for (let i = 0; i < numChunks; i++) {
-                    promises.push(db.collection('biblioteca_cantos').doc(`chunk_${i}`).get());
-                }
-                const snapshots = await Promise.all(promises);
+                // Descargar bloques por grupos de 5 para no saturar la persistencia de Firestore inicial
                 let allSongs = [];
-                snapshots.forEach(s => {
-                    if (s.exists) {
-                        allSongs = allSongs.concat(s.data().lista || []);
+                const chunkSize = 5;
+                for (let i = 0; i < numChunks; i += chunkSize) {
+                    const batch = [];
+                    for (let j = i; j < i + chunkSize && j < numChunks; j++) {
+                        batch.push(db.collection('biblioteca_cantos').doc(`chunk_${j}`).get());
                     }
-                });
+                    const snapshots = await Promise.all(batch);
+                    snapshots.forEach(s => {
+                        if (s.exists) {
+                            allSongs = allSongs.concat(s.data().lista || []);
+                        }
+                    });
+                }
                 
                 // Ordenar alfabéticamente
                 allSongs.sort((a,b) => (a.titulo || a.title || "").localeCompare(b.titulo || b.title || ""));
@@ -290,6 +329,8 @@ function initCloudListeners() {
                 console.log(`[Sync] ${window.cloudSongs.length} canciones reconstruidas con éxito.`);
             } catch (err) {
                 console.error("[Sync] Error al reconstruir bloques:", err);
+            } finally {
+                window.isFetchingChunks = false;
             }
         } else if (data.lista) {
             // Soporte para formato antiguo (un solo doc)
