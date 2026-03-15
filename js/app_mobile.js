@@ -157,11 +157,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const splashProgress = document.getElementById('installProgress');
     const app = document.getElementById('app-mobile');
 
-    // 1. Mostrar Splash inicial
+    // 1. Mostrar Splash inicial (y asegurar que el contenedor principal sea visible)
+    if (app) app.classList.remove('hidden');
     if (splash) {
         splash.classList.remove('hidden');
-        if (splashProgress) splashProgress.style.width = '10%';
+        if (splashProgress) splashProgress.style.width = '15%';
     }
+    const login = document.getElementById('loginScreen');
+    if (login) login.classList.add('hidden'); // Ocultar login mientras carga
 
     // 2. Inicializar almacenamiento local
     try {
