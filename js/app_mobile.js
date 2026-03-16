@@ -341,6 +341,8 @@ function initCloudListeners() {
                 console.log(`[Sync] ${window.cloudSongs.length} canciones reconstruidas con éxito.`);
             } catch (err) {
                 console.error("[Sync] Error al reconstruir bloques:", err);
+                renderSongLibrary([]); // Limpiar el estado de carga
+                showNotification("Error al cargar canciones de la nube. Intenta sincronizar de nuevo.", "error");
             } finally {
                 window.isFetchingChunks = false;
             }
@@ -349,6 +351,10 @@ function initCloudListeners() {
             window.cloudSongs = data.lista;
             renderSongLibrary(window.cloudSongs);
             console.log(`[Sync] ${window.cloudSongs.length} canciones cargadas (Formato antiguo).`);
+        } else {
+            // Documento vacío o sin canciones (ej: total: 0)
+            window.cloudSongs = [];
+            renderSongLibrary([]);
         }
     });
 
@@ -896,6 +902,12 @@ function renderSongLibrary(lista) {
     const container = document.getElementById('songListCloud');
     if (!container) return;
     container.innerHTML = '';
+
+    if (!lista || lista.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay canciones sincronizadas. Pulsa "Sincronizar" en la PC.</div>';
+        return;
+    }
+
     lista.forEach(item => {
         const el = document.createElement('div');
         el.className = 'mobile-list-item';
