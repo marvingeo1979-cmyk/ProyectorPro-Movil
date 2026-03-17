@@ -116,6 +116,7 @@
                 <button class="tab-btn" data-tab="canciones"><i class="fa-solid fa-music"></i><span>Canciones</span></button>
                 <button class="tab-btn" data-tab="favoritosCantos"><i class="fa-solid fa-star"></i><span>Favoritos</span></button>
                 <button class="tab-btn" data-tab="anuncios"><i class="fa-solid fa-bullhorn"></i><span>Anuncios</span></button>
+                <button class="tab-btn" data-tab="historialVersiculos"><i class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></button>
                 <button class="tab-btn" data-tab="notas"><i class="fa-solid fa-pen-to-square"></i><span>Notas</span></button>
             </section>
 
@@ -276,6 +277,26 @@
                     <div style="height: 120px;"></div> <!-- Espacio para teclado -->
                 </div>
 
+                <!-- Panel Historial de Versículos (Nuevo) -->
+                <div class="panel" data-id="historialVersiculos">
+                    <div class="panel-header-mini">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h2>Historial de Lectura</h2>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Versículos proyectados recientemente</p>
+                            </div>
+                            <button onclick="clearVerseHistory()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
+                                <i class="fa-solid fa-eraser"></i> LIMPIAR
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto;">
+                        <div id="verseHistoryList" class="mobile-grid-list" style="padding-bottom: 30px;">
+                            <div class="empty-state">No hay versículos en el historial de hoy.</div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Panel 5: LISTA DE ENVÍO (Centralizado) -->
                 <div class="panel" data-id="cart" style="overflow: hidden; padding-bottom: 0;">

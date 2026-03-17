@@ -48,6 +48,7 @@ window.bibleState = {
 };
 window.cloudSongs = [];
 window.cloudAnnouncements = JSON.parse(localStorage.getItem('mobileCloudAnn')) || [];
+window.verseHistory = JSON.parse(localStorage.getItem('mobileVerseHistory')) || [];
 window.pendingDeletions = JSON.parse(localStorage.getItem('mobilePendingDeletions')) || [];
 window.lastLibraryUpdate = parseInt(localStorage.getItem('mobileLastSync')) || 0;
 window.localBibles = {}; 
@@ -1269,6 +1270,21 @@ async function handleGlobalSend() {
         status: 'pending'
     };
 
+    // --- GUARDAR EN HISTORIAL (NUEVO) ---
+    if (window.cart.bible && window.cart.bible.length > 0) {
+        // Añadir al inicio para que el más reciente aparezca primero
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const newHistoryEntries = window.cart.bible.map(entry => ({
+            ...entry,
+            time: timeStr,
+            timestamp: Date.now()
+        }));
+        
+        window.verseHistory = [...newHistoryEntries, ...window.verseHistory].slice(0, 50); // Límite de 50
+        localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+    }
+    // ------------------------------------
+
     try {
         // Enviar a la nube (PC lo recibirÃ¡)
         const msgRef = await db.collection('mensajes_nube').add(messageData);
@@ -1429,6 +1445,9 @@ function initPanels() {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.querySelector(`.panel[data-id="${id}"]`).classList.add('active');
+            
+            // Refrescar contenido si es historial
+            if (id === 'historialVersiculos') renderVerseHistory();
         };
     });
 }
@@ -1741,3 +1760,54 @@ window.closePreview = function() {
     if (originalClosePreview) originalClosePreview();
     else document.getElementById('modalPreview').classList.add('hidden');
 };
+
+/** ── HISTORIAL DE VERSÍCULOS ── */
+function renderVerseHistory() {
+    const container = document.getElementById('verseHistoryList');
+    if (!container) return;
+
+    if (!window.verseHistory || window.verseHistory.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay versículos en el historial de hoy.</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    window.verseHistory.forEach((entry, idx) => {
+        const item = entry.data;
+        const el = document.createElement('div');
+        el.className = 'cloud-card'; // Reutilizar estilos de notas
+        el.style = "margin-bottom: 10px; padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.04); border-left: 4px solid var(--ocher-base); box-shadow: 0 2px 8px rgba(0,0,0,0.2);";
+        
+        el.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px; opacity:0.6; font-size:0.7rem;">
+                <span style="color:var(--ocher-base); font-weight:800; text-transform:uppercase;">${item.cita}</span>
+                <span><i class="fa-regular fa-clock"></i> ${entry.time || '--:--'}</span>
+            </div>
+            <div style="font-size:1.05rem; line-height:1.5; color:#fff; white-space: pre-wrap;">${item.texto}</div>
+            ${entry.obs ? `<div style="font-size:0.75rem; color:var(--ocher-light); margin-top:8px; font-style:italic; opacity:0.7; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;">Obs: ${entry.obs}</div>` : ''}
+            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                <button onclick="reAddFromHistory(${idx})" style="background:var(--wine-accent); color:white; border:1px solid var(--ocher-base); border-radius:6px; padding:4px 10px; font-size:0.7rem; font-weight:700;">
+                    <i class="fa-solid fa-plus"></i> RE-ENVIAR
+                </button>
+            </div>
+        `;
+        container.appendChild(el);
+    });
+}
+
+function clearVerseHistory() {
+    showConfirm("¿Deseas vaciar el historial de versículos de esta sesión?", () => {
+        window.verseHistory = [];
+        localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+        renderVerseHistory();
+        showNotification("Historial limpiado.");
+    });
+}
+
+function reAddFromHistory(idx) {
+    const entry = window.verseHistory[idx];
+    if (entry) {
+        addItemToCartFinal('bible', entry.data, entry.obs || "");
+        showNotification("Versículo añadido a la lista de envío.");
+    }
+}
