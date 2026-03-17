@@ -51,6 +51,19 @@ window.cloudAnnouncements = JSON.parse(localStorage.getItem('mobileCloudAnn')) |
 window.verseHistory = JSON.parse(localStorage.getItem('mobileVerseHistory')) || [];
 window.pendingDeletions = JSON.parse(localStorage.getItem('mobilePendingDeletions')) || [];
 window.lastLibraryUpdate = parseInt(localStorage.getItem('mobileLastSync')) || 0;
+window.songKeywords = JSON.parse(localStorage.getItem('mobileSongKeywords')) || [
+  { key: 'CORO', type: 'chorus' },
+  { key: 'ESTROFA', type: 'verse' },
+  { key: 'PUENTE', type: 'bridge' },
+  { key: 'FINAL', type: 'final' },
+  { key: 'INTRO', type: 'intro' },
+  { key: 'PRE-CORO', type: 'chorus' },
+  { key: 'INTERMEDIO', type: 'bridge' },
+  { key: 'ESTRIBILLO', type: 'chorus' },
+  { key: 'SOLO', type: 'bridge' },
+  { key: 'RAP', type: 'bridge' },
+  { key: 'TAG', type: 'bridge' }
+];
 window.localBibles = {}; 
 const normalizeText = (t) => t ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 
@@ -233,8 +246,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    initSyncFormLogic();
     initStatusIndicators();
+    initKeywordsListener();
 });
 
 function initSyncFormLogic() {
@@ -291,9 +304,10 @@ function initSyncFormLogic() {
     });
 }
 
-/** ── COMUNICACIÓN CON LA NUBE ── */
 function initCloudListeners() {
     console.log("[Mobile] Conectado a la nube.");
+
+    initKeywordsListener();
 
     db.collection('biblioteca_biblias').doc('master').onSnapshot(doc => {
         if (doc.exists) {
@@ -454,6 +468,22 @@ function initNotesListener() {
                 container.appendChild(el);
             });
         });
+}
+
+function initKeywordsListener() {
+    console.log("[Mobile] Escuchando etiquetas de canciones...");
+    db.collection('configuracion').doc('etiquetas').onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.lista && Array.isArray(data.lista)) {
+                window.songKeywords = data.lista;
+                localStorage.setItem('mobileSongKeywords', JSON.stringify(data.lista));
+                console.log("[Mobile] Etiquetas actualizadas:", data.lista.length);
+            }
+        }
+    }, err => {
+        console.warn("[Mobile] Error cargando etiquetas:", err);
+    });
 }
 
 /** ── NAVEGACIÓN Y DESCARGA DE BIBLIA (PRO LOCAL) ── */
@@ -1072,7 +1102,7 @@ async function showPreview(song) {
     const lyricsEl = document.getElementById('previewLyrics');
     
     if (song.letra) {
-        lyricsEl.textContent = song.letra;
+        lyricsEl.innerHTML = formatLyrics(song.letra);
     } else {
         lyricsEl.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.5;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando letra desde la nube...</div>';
         try {
@@ -1080,7 +1110,7 @@ async function showPreview(song) {
             if (doc.exists) {
                 const data = doc.data();
                 song.letra = data.letra; // Cachear para la prÃ³xima vez
-                lyricsEl.textContent = data.letra;
+                lyricsEl.innerHTML = formatLyrics(data.letra);
             } else {
                 lyricsEl.textContent = "Error: Letra no encontrada. Usa 'Exportar Letras' en la PC.";
             }
@@ -1091,6 +1121,48 @@ async function showPreview(song) {
     const footer = document.getElementById('modalPreviewFooter');
     if (footer) footer.classList.remove('hidden');
     document.getElementById('modalPreview').classList.remove('hidden');
+}
+
+function formatLyrics(lyrics) {
+    if (!lyrics) return "";
+    
+    // Dividir por párrafos (doble salto de línea o similar)
+    const paragraphs = lyrics.split(/\n\s*\n/);
+    let html = '';
+
+    paragraphs.forEach((para) => {
+        const lines = para.split('\n').filter(l => l.trim() !== '');
+        if (lines.length === 0) return;
+
+        // Detectar tipo de sección por la primera línea
+        const firstLine = lines[0].trim().toUpperCase();
+        let sectionType = 'verse';
+        let hasLabel = false;
+
+        const keywords = window.songKeywords || [];
+
+        for (const kw of keywords) {
+            if (firstLine.includes(kw.key.toUpperCase())) {
+                sectionType = kw.type;
+                hasLabel = true;
+                break;
+            }
+        }
+
+        html += `<div class="song-${sectionType}-block">`;
+
+        lines.forEach((line, pIndex) => {
+            if (pIndex === 0 && hasLabel) {
+                html += `<div class="song-section-label">${line.trim()}</div>`;
+            } else {
+                html += `<div class="song-line-preview">${line}</div>`;
+            }
+        });
+
+        html += `</div>`;
+    });
+
+    return html;
 }
 
 function closePreview() {
@@ -1744,7 +1816,7 @@ window.showFavoriteLyrics = function(idx) {
     const sLyrics = song.letra || song.lyrics || "Sin letra registrada.";
 
     title.textContent = sTitle + (song.tono ? ` (${song.tono})` : '');
-    lyrics.textContent = sLyrics;
+    lyrics.innerHTML = formatLyrics(sLyrics);
     
     // Ocultar botón de añadir al carrito porque esto es consulta de favoritos
     if (footer) footer.style.display = 'none';

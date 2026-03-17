@@ -613,6 +613,66 @@ body {
     line-height: 1.6;
     font-size: 1rem;
 }
+
+/* ── Song Parsing Styles Mobile ── */
+.song-section-label {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    background: var(--wine-accent);
+    color: var(--ocher-light);
+    border-radius: 4px;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.song-verse-block {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.song-chorus-block {
+    background: rgba(212, 175, 55, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    border-left: 4px solid var(--ocher-base);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 1.2rem;
+}
+
+.song-chorus-block .song-section-label {
+    background: var(--ocher-base);
+    color: var(--bg-dark);
+}
+
+.song-bridge-block {
+    background: rgba(0, 150, 255, 0.05);
+    border: 1px solid rgba(0, 150, 255, 0.15);
+    border-left: 4px solid #3498db;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 1rem;
+}
+
+.song-final-block {
+    background: rgba(231, 76, 60, 0.05);
+    border: 1px solid rgba(231, 76, 60, 0.15);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 1rem;
+}
+
+.song-line-preview {
+    margin-bottom: 2px;
+    font-size: 1.05rem;
+}
+
 .modal-footer {
     padding: 1rem;
     border-top: 1px solid var(--glass-border);
