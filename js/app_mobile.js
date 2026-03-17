@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     initStatusIndicators();
-    initKeywordsListener();
+    // initKeywordsListener is now only called once inside initCloudListeners
 });
 
 function initSyncFormLogic() {
@@ -371,6 +371,8 @@ function initCloudListeners() {
             window.cloudSongs = [];
             renderSongLibrary([]);
         }
+    }, err => {
+        console.error("[Sync] Error en listener de canciones:", err);
     });
 
     db.collection('biblioteca_anuncios').doc('master').onSnapshot(doc => {
