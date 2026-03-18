@@ -1144,7 +1144,10 @@ function formatLyrics(lyrics) {
         const keywords = window.songKeywords || [];
 
         for (const kw of keywords) {
-            if (firstLine.includes(kw.key.toUpperCase())) {
+            const upKey = kw.key.toUpperCase();
+            // Match exact word or follow by number/colon (e.g. "CORO 1", "CORO:")
+            const regex = new RegExp(`^${upKey}(\\s|\\d|:|$)`);
+            if (regex.test(firstLine)) {
                 sectionType = kw.type;
                 hasLabel = true;
                 break;
