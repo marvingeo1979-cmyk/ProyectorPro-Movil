@@ -1660,13 +1660,14 @@ window.handleLogin = async function() {
                     setTimeout(() => err.style.display = 'none', 5000);
                     return;
                 }
-                completeLogin(found.u);
+                // Pasar tanto el alias como el mismo como nombre si no hay otro
+                completeLogin(found.u, found.u);
                 return;
             }
         } else {
             // El documento no existe en la nube
             if (uInput.toLowerCase() === 'admin' && pInput === '123') {
-                 completeLogin('Administrador (Inicial)');
+                 completeLogin('Administrador', 'admin');
                  return;
             }
         }
@@ -1681,8 +1682,8 @@ window.handleLogin = async function() {
         const foundLocal = cachedUsers.find(x => x.u.toLowerCase() === uInput.toLowerCase() && x.p === pInput);
         
         if (foundLocal) {
-            showNotification("Modo Offline: Acceso concedido mediante cachÃ© local.", "success");
-            completeLogin(foundLocal.u + " (Offline)");
+            showNotification("Modo Offline: Acceso concedido.", "success");
+            completeLogin(foundLocal.u, foundLocal.u);
         } else {
             err.textContent = (e.message === "Credenciales invÃ¡lidas") ? "Usuario o clave incorrectos." : "Sin conexiÃ³n y usuario no reconocido localmente.";
             err.style.display = 'block';
@@ -1694,8 +1695,8 @@ window.handleLogin = async function() {
     }
 };
 
-function completeLogin(name) {
-    const userObj = { name, loggedAt: Date.now() };
+function completeLogin(name, username) {
+    const userObj = { name, username: (username || name).toLowerCase(), loggedAt: Date.now() };
     localStorage.setItem('mobileUser', JSON.stringify(userObj));
     window.currentUser = userObj;
     checkUserSession();
@@ -1943,9 +1944,12 @@ window.saveNewPassword = async function() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> GUARDANDO...';
 
     try {
+        if (!window.currentUser || !window.currentUser.username) throw new Error("Sesión no válida");
         const userId = window.currentUser.username;
+        const oldP = document.getElementById('oldPassInput').value;
+        const p1 = document.getElementById('newPass1Input').value;
 
-        // En lugar de editar el maestro directamente, enviamos una PETICIÓN a la PC (Maestra de usuarios)
+        // En lugar de editar el maestro directamente, enviamos una PETICIÓN a la PC
         await db.collection('peticiones_libreria').add({
             type: 'UPDATE_USER_PASS',
             user: userId,
@@ -1955,16 +1959,13 @@ window.saveNewPassword = async function() {
         });
 
         closePassModal();
-        showNotification("Petición de cambio enviada. Se actualizará en unos segundos.");
+        showNotification("Petición de cambio enviada. Se actualizará pronto.");
         
-        // Opcional: Cerrar sesión para que el usuario re-ingrese con la nueva clave
-        setTimeout(() => {
-            handleLogout();
-        }, 2000);
+        setTimeout(() => handleLogout(), 2500);
 
     } catch (e) {
         console.error(e);
-        err.textContent = "Error al enviar petición. Revisa tu conexión.";
+        err.textContent = "Fallo al enviar: " + (e.message || "revisa conexión");
         err.style.display = 'block';
     } finally {
         btn.disabled = false;
