@@ -348,8 +348,8 @@ function initCloudListeners() {
                     });
                 }
                 
-                // Ordenar alfabéticamente
-                allSongs.sort((a,b) => (a.titulo || a.title || "").localeCompare(b.titulo || b.title || ""));
+                // Ordenar por ID para que coincida exactamente con el orden de la PC (maestro)
+                allSongs.sort((a,b) => (a.id || 0) - (b.id || 0));
                 
                 window.cloudSongs = allSongs;
                 renderSongLibrary(window.cloudSongs);
@@ -363,7 +363,9 @@ function initCloudListeners() {
             }
         } else if (data.lista) {
             // Soporte para formato antiguo (un solo doc)
-            window.cloudSongs = data.lista;
+            const oldList = data.lista || [];
+            oldList.sort((a,b) => (a.id || 0) - (b.id || 0));
+            window.cloudSongs = oldList;
             renderSongLibrary(window.cloudSongs);
             console.log(`[Sync] ${window.cloudSongs.length} canciones cargadas (Formato antiguo).`);
         } else {
