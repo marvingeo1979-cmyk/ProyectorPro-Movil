@@ -1888,3 +1888,86 @@ function reAddFromHistory(idx) {
         showNotification("Versículo añadido a la lista de envío.");
     }
 }
+
+/** ── GESTIÓN DE CUENTA ── */
+window.toggleUserMenu = function() {
+    const user = window.currentUser;
+    if (!user) return;
+    const nameEl = document.getElementById('optModalUserName');
+    if (nameEl) nameEl.textContent = user.name || user.username;
+    document.getElementById('userOptionsModal').classList.remove('hidden');
+};
+
+window.closeUserMenu = function() {
+    document.getElementById('userOptionsModal').classList.add('hidden');
+};
+
+window.showChangePassModal = function() {
+    closeUserMenu();
+    document.getElementById('passwordModal').classList.remove('hidden');
+    document.getElementById('oldPassInput').value = "";
+    document.getElementById('newPass1Input').value = "";
+    document.getElementById('newPass2Input').value = "";
+    document.getElementById('passErrText').style.display = 'none';
+};
+
+window.closePassModal = function() {
+    document.getElementById('passwordModal').classList.add('hidden');
+};
+
+window.saveNewPassword = async function() {
+    const oldP = document.getElementById('oldPassInput').value;
+    const p1 = document.getElementById('newPass1Input').value;
+    const p2 = document.getElementById('newPass2Input').value;
+    const err = document.getElementById('passErrText');
+    const btn = document.getElementById('btnSaveMobPass');
+
+    if (!oldP || !p1 || !p2) {
+        err.textContent = "Todos los campos son obligatorios.";
+        err.style.display = 'block';
+        return;
+    }
+    if (p1 !== p2) {
+        err.textContent = "Las nuevas contraseñas no coinciden.";
+        err.style.display = 'block';
+        return;
+    }
+    if (p1.length < 3) {
+        err.textContent = "La clave es demasiado corta (mínimo 3).";
+        err.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> GUARDANDO...';
+
+    try {
+        const userId = window.currentUser.username;
+
+        // En lugar de editar el maestro directamente, enviamos una PETICIÓN a la PC (Maestra de usuarios)
+        await db.collection('peticiones_libreria').add({
+            type: 'UPDATE_USER_PASS',
+            user: userId,
+            old: oldP,
+            new: p1,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        closePassModal();
+        showNotification("Petición de cambio enviada. Se actualizará en unos segundos.");
+        
+        // Opcional: Cerrar sesión para que el usuario re-ingrese con la nueva clave
+        setTimeout(() => {
+            handleLogout();
+        }, 2000);
+
+    } catch (e) {
+        console.error(e);
+        err.textContent = "Error al enviar petición. Revisa tu conexión.";
+        err.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};

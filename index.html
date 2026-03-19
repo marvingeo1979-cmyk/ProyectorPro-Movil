@@ -98,7 +98,7 @@
                     <span id="cartHeaderBadge" class="cart-badge">0</span>
                 </button>
                 
-                <div id="userProfile" class="user-info-wrap" style="background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px;">
+                <div id="userProfile" class="user-info-wrap" onclick="toggleUserMenu()" style="background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fa-solid fa-circle-user" style="color: var(--ocher-base); font-size: 1rem;"></i>
                     <span id="userName" style="max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-weight: 600; color: var(--ocher-light);">Visitante</span>
                 </div>
@@ -391,6 +391,55 @@
             </footer>
         </div>
     </div>
+    <!-- User Options Menu Modal (Mobile) -->
+    <div id="userOptionsModal" class="mobile-modal hidden" style="z-index: 100005;">
+        <div class="modal-content" style="max-height: auto; height: auto; align-self: center; width: 85%; margin: 0 auto;">
+            <header class="modal-header" style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.5rem; text-align: center;">
+                <i class="fa-solid fa-circle-user" style="font-size: 3rem; color: var(--ocher-base); margin-bottom: 10px; display: block;"></i>
+                <h3 id="optModalUserName" style="color: white; font-size: 1.25rem; margin: 0;">Usuario</h3>
+            </header>
+            <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark); display: flex; flex-direction: column; gap: 12px;">
+                <button onclick="showChangePassModal()" class="btn-cloud-send" style="background: rgba(255,255,255,0.05); margin:0;">
+                    <i class="fa-solid fa-key"></i> CAMBIAR CONTRASEÑA
+                </button>
+                <button onclick="handleLogout()" class="btn-cloud-send" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border-color: #e74c3c; margin:0;">
+                    <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+                </button>
+            </div>
+            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border);">
+                <button onclick="closeUserMenu()" style="width: 100%; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Password Change Modal (Mobile) -->
+    <div id="passwordModal" class="mobile-modal hidden" style="z-index: 100006;">
+        <div class="modal-content" style="max-height: auto; height: auto; align-self: center; width: 90%; margin: 0 auto;">
+            <header class="modal-header" style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.2rem;">
+                <h3 style="color: white; font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-key"></i> Cambiar Contraseña</h3>
+            </header>
+            <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark);">
+                <div class="form-group-mobile" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Contraseña Actual</label>
+                    <input type="password" id="oldPassInput" class="mobile-input" placeholder="••••••••">
+                </div>
+                <div class="form-group-mobile" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Nueva Contraseña</label>
+                    <input type="password" id="newPass1Input" class="mobile-input" placeholder="••••••••">
+                </div>
+                <div class="form-group-mobile">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Confirmar Clave</label>
+                    <input type="password" id="newPass2Input" class="mobile-input" placeholder="••••••••">
+                </div>
+                <p id="passErrText" class="error-msg" style="color: #e74c3c; margin-top: 10px; font-size: 0.8rem; text-align: center; display:none;"></p>
+            </div>
+            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
+                <button onclick="closePassModal()" style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+                <button id="btnSaveMobPass" onclick="saveNewPassword()" class="btn-cloud-send" style="flex: 1.5; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800; background: var(--wine-accent);">GUARDAR</button>
+            </footer>
+        </div>
+    </div>
+
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- Firebase SDK (Compat) -->
