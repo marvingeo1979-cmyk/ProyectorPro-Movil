@@ -1733,7 +1733,9 @@ function checkUserSession() {
         if (login) login.classList.add('hidden');
         if (userDisplay) userDisplay.textContent = window.currentUser.name;
     } else {
-        if (app) app.classList.add('hidden'); // OCULTAR APP AL SALIR
+        // MUY IMPORTANTE: loginScreen está DENTRO de app-mobile.
+        // Si ocultamos app-mobile, el login TAMBIÉN se oculta.
+        if (app) app.classList.remove('hidden'); 
         if (login) login.classList.remove('hidden');
     }
 }
