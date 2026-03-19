@@ -1949,7 +1949,27 @@ window.saveNewPassword = async function() {
         const oldP = document.getElementById('oldPassInput').value;
         const p1 = document.getElementById('newPass1Input').value;
 
-        // En lugar de editar el maestro directamente, enviamos una PETICIÓN a la PC
+        // 1. ACTUALIZACIÓN DIRECTA EN EL MAESTRO (Para inmediatez)
+        const docRef = db.collection('usuarios_autorizados').doc('master');
+        const snap = await docRef.get();
+        if (snap.exists) {
+            const data = snap.data();
+            const users = data.lista || [];
+            const uIdx = users.findIndex(u => u.u.toLowerCase() === userId.toLowerCase());
+            
+            if (uIdx === -1) throw new Error("Usuario no encontrado en el servidor");
+            if (users[uIdx].p !== oldP) throw new Error("Contraseña actual incorrecta");
+
+            users[uIdx].p = p1;
+            await docRef.set({ 
+                lista: users, 
+                updated: firebase.firestore.FieldValue.serverTimestamp() 
+            });
+            // También actualizar caché local para permitir acceso offline con la nueva clave
+            localStorage.setItem('cachedUsers', JSON.stringify(users));
+        }
+
+        // 2. PETICIÓN PARA QUE LA PC ACTUALICE SU BASE LOCAL (Para persistencia)
         await db.collection('peticiones_libreria').add({
             type: 'UPDATE_USER_PASS',
             user: userId,
@@ -1959,13 +1979,16 @@ window.saveNewPassword = async function() {
         });
 
         closePassModal();
-        showNotification("Petición de cambio enviada. Se actualizará pronto.");
+        showNotification("¡Contraseña actualizada con éxito!");
         
-        setTimeout(() => handleLogout(), 2500);
+        // Cerrar sesión para que el usuario re-ingrese con la nueva clave
+        setTimeout(() => {
+            handleLogout();
+        }, 1500);
 
     } catch (e) {
         console.error(e);
-        err.textContent = "Fallo al enviar: " + (e.message || "revisa conexión");
+        err.textContent = "Error: " + (e.message || "revisa conexión");
         err.style.display = 'block';
     } finally {
         btn.disabled = false;
