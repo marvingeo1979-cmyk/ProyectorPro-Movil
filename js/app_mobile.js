@@ -1704,16 +1704,22 @@ function completeLogin(name, username) {
 
 window.handleLogout = function() {
     showConfirm("¿Deseas cerrar la sesión activa?", () => {
+        // 1. Limpiar sesión
         localStorage.removeItem('mobileUser');
         window.currentUser = null;
         
-        // Limpiar campos de login
+        // 2. Cerrar menús/modales abiertos
+        if (typeof closeUserMenu === 'function') closeUserMenu();
+        if (typeof closePassModal === 'function') closePassModal();
+        
+        // 3. Limpiar campos de login
         const loginUser = document.getElementById('loginUser');
         const loginPass = document.getElementById('loginPass');
         if (loginUser) loginUser.value = "";
         if (loginPass) loginPass.value = "";
 
-        checkUserSession(); // Cambia la vista instantáneamente sin recargar
+        // 4. Actualizar vista
+        checkUserSession();
     });
 };
 
@@ -1723,12 +1729,12 @@ function checkUserSession() {
     const userDisplay = document.getElementById('userName');
 
     if (window.currentUser) {
-        app.classList.remove('hidden');
-        login.classList.add('hidden');
+        if (app) app.classList.remove('hidden');
+        if (login) login.classList.add('hidden');
         if (userDisplay) userDisplay.textContent = window.currentUser.name;
     } else {
-        app.classList.remove('hidden');
-        login.classList.remove('hidden');
+        if (app) app.classList.add('hidden'); // OCULTAR APP AL SALIR
+        if (login) login.classList.remove('hidden');
     }
 }
 
