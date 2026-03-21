@@ -1544,13 +1544,39 @@ function initSearch() {
                 if (raw) songClear.classList.remove('hidden');
                 else songClear.classList.add('hidden');
             }
-            // Filtrado ignorando acentos y mayúsculas (Busca en título y letra)
-            const filtered = window.cloudSongs.filter(s => {
-                const titleMatch = normalizeText(s.titulo || s.title || "").includes(q);
-                const lyricsMatch = normalizeText(s.letra || s.lyrics || "").includes(q);
-                return titleMatch || lyricsMatch;
+            // Filtrado inteligente y ordenado: Busca en título y letra priorizando título
+            const matches = [];
+            for (let i = 0; i < window.cloudSongs.length; i++) {
+                const s = window.cloudSongs[i];
+                // Cachear normalización para mayor rapidez futura
+                if (s._normTitle === undefined) s._normTitle = normalizeText(s.titulo || s.title || "");
+                if (s._normLyrics === undefined) s._normLyrics = normalizeText(s.letra || s.lyrics || "");
+
+                const inTitle = s._normTitle.includes(q);
+                const inLyrics = s._normLyrics.includes(q);
+
+                if (inTitle || inLyrics) {
+                    matches.push({ song: s, inTitle, inLyrics });
+                }
+            }
+
+            matches.sort((a, b) => {
+                // 1. Coincidencia en título va primero
+                if (a.inTitle && !b.inTitle) return -1;
+                if (!a.inTitle && b.inTitle) return 1;
+
+                // 2. Si ambos empatan, verificar índice de aparición
+                if (a.inTitle && b.inTitle) {
+                    const idxA = a.song._normTitle.indexOf(q);
+                    const idxB = b.song._normTitle.indexOf(q);
+                    if (idxA !== idxB) return idxA - idxB;
+                }
+
+                // 3. Orden alfabético
+                return a.song._normTitle.localeCompare(b.song._normTitle);
             });
-            renderSongLibrary(filtered);
+
+            renderSongLibrary(matches.map(m => m.song));
         };
     }
     
