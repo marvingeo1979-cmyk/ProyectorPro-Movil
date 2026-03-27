@@ -332,9 +332,9 @@ function initCloudListeners() {
             window.isFetchingChunks = true;
 
             try {
-                // Descargar bloques por grupos de 5 para no saturar la persistencia de Firestore inicial
+                // Descargar bloques uno a uno para mayor fiabilidad en conexiones inestables
                 let allSongs = [];
-                const chunkSize = 5;
+                const chunkSize = 1; 
                 for (let i = 0; i < numChunks; i += chunkSize) {
                     const batch = [];
                     for (let j = i; j < i + chunkSize && j < numChunks; j++) {
@@ -346,6 +346,11 @@ function initCloudListeners() {
                             allSongs = allSongs.concat(s.data().lista || []);
                         }
                     });
+                    
+                    // Opcional: mostrar progreso si hay muchos bloques
+                    if (numChunks > 10 && i % 5 === 0) {
+                        showNotification(`Sincronizando canciones: ${Math.round((i/numChunks)*100)}%`, "info", "sync-songs");
+                    }
                 }
                 
                 // Ordenar por ID para que coincida exactamente con el orden de la PC (maestro)
@@ -560,19 +565,32 @@ async function downloadFullBible(versionName) {
         
         showNotification(`Iniciando descarga de ${versionName}...`, "info", "bible-dl");
 
-        // 2. Descargar libro por libro (Secuencial para evitar saturar el móvil)
+        // 2. Descargar libro por libro (Uno a uno para máxima estabilidad)
         for (let i = 0; i < total; i++) {
             const book = booksList[i];
             
-            // Actualizar UI del botón y notificación
+            // Actualizar UI del botón y notificación en cada libro
             if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${i+1}/${total}`;
-            if (i % 5 === 0 || i === total - 1) {
-                showNotification(`Descargando ${versionName}: libro ${i+1} de ${total}...`, "info", "bible-dl");
-            }
+            showNotification(`Descargando ${versionName}: ${book.name} (${i+1}/${total})`, "info", "bible-dl");
 
-            const docPlan = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').doc(String(book.id)).get();
+            // Intento de descarga con reintentos
+            let docPlan = null;
+            let attempts = 0;
+            const maxAttempts = 3;
             
-            if (docPlan.exists) {
+            while (attempts < maxAttempts) {
+                try {
+                    docPlan = await db.collection('biblias_texto_completo').doc(versionName).collection('libros').doc(String(book.id)).get();
+                    break; // Éxito, salimos del while
+                } catch (err) {
+                    attempts++;
+                    console.warn(`[Bible] Error descargando libro ${book.id}, reintento ${attempts}/${maxAttempts}...`, err);
+                    if (attempts >= maxAttempts) throw err; // Si fallan todos los reintentos, lanzamos el error
+                    await new Promise(res => setTimeout(res, 1000)); // Esperar 1s antes de reintentar
+                }
+            }
+            
+            if (docPlan && docPlan.exists) {
                 fullText[book.id] = docPlan.data();
             } else {
                 console.warn(`[Bible] Libro ${book.id} (${book.name}) no encontrado en la nube.`);
