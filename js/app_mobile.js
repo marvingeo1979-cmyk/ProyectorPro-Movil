@@ -946,7 +946,14 @@ function renderSongLibrary(lista) {
     lista.forEach(item => {
         const el = document.createElement('div');
         el.className = 'mobile-list-item';
-        el.innerHTML = `<i class="fa-solid fa-music"></i><div class="item-info"><div class="item-title">${item.titulo}</div></div><i class="fa-solid fa-eye" style="opacity:0.3"></i>`;
+        el.innerHTML = `
+            <i class="fa-solid fa-music"></i>
+            <div class="item-info">
+                <div class="item-title">${item.titulo}</div>
+                ${item.tono ? `<div style="font-size: 0.75rem; color: var(--ocher-light); opacity: 0.7; margin-top: 1px;">Tono: ${item.tono}</div>` : ''}
+            </div>
+            <i class="fa-solid fa-eye" style="opacity:0.3"></i>
+        `;
         el.onclick = () => showPreview(item);
         container.appendChild(el);
     });
@@ -1103,6 +1110,17 @@ async function showPreview(song) {
     window.currentPreviewAnn = null; // Limpiar preview de anuncio
     window.currentPreviewSong = song;
     document.getElementById('previewTitle').textContent = song.titulo;
+    
+    // Asignar Tono si existe
+    const toneDisplay = document.getElementById('previewTone');
+    if (toneDisplay) {
+        if (song.tono) {
+            toneDisplay.textContent = `Tono: ${song.tono}`;
+            toneDisplay.classList.remove('hidden');
+        } else {
+            toneDisplay.classList.add('hidden');
+        }
+    }
     const lyricsEl = document.getElementById('previewLyrics');
     
     if (song.letra) {
@@ -1309,6 +1327,9 @@ function renderCart(type) {
             // Formato estándar (Canciones o formato viejo)
             const display = item.titulo || item.texto || (typeof item === 'string' ? item : "Elemento");
             displayHtml = `<div style="font-weight:700; color:white;">${display}</div>`;
+            if (type === 'songs' && item.tono) {
+                displayHtml += `<div style="font-size:0.75rem; color:var(--ocher-light); opacity:0.7; margin-top:2px;">Tono: ${item.tono}</div>`;
+            }
         }
 
         const obs = entry.obs ? `<div class="cart-item-obs" style="font-size:0.7rem; color: var(--ocher-base); margin-top:5px; font-style: italic; opacity: 0.9; border-top: 1px solid rgba(212,175,55,0.2); padding-top: 3px;">

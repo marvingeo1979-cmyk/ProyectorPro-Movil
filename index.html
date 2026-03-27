@@ -346,7 +346,10 @@
     <div id="modalPreview" class="mobile-modal hidden">
         <div class="modal-content">
             <header class="modal-header" style="background: var(--wine-accent); border-radius: 20px 20px 0 0; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
-                <h3 id="previewTitle" style="color: white; font-size: 1.15rem; margin: 0; flex: 1; line-height: 1.2;">Título del Canto</h3>
+                <div style="display: flex; flex-direction: column; flex: 1;">
+                    <h3 id="previewTitle" style="color: white; font-size: 1.15rem; margin: 0; line-height: 1.2;">Título del Canto</h3>
+                    <span id="previewTone" class="hidden" style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9; margin-top: 2px;">Tono: -</span>
+                </div>
                 <button onclick="closePreview()" class="close-modal-btn" style="margin: 0; flex-shrink: 0;">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
