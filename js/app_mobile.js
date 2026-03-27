@@ -347,11 +347,24 @@ function initCloudListeners() {
                         }
                     });
                     
-                    // Opcional: mostrar progreso si hay muchos bloques
-                    if (numChunks > 10 && i % 5 === 0) {
-                        showNotification(`Sincronizando canciones: ${Math.round((i/numChunks)*100)}%`, "info", "sync-songs");
+                    const percent = Math.round((i/numChunks)*100);
+                    const msg = `Sincronizando canciones: ${percent}%`;
+                    
+                    // Si estamos en login, mostrar en el status dedicado
+                    const loginStatus = document.getElementById('loginLoadingStatus');
+                    const loginText = document.getElementById('loginLoadingText');
+                    if (loginStatus && !window.currentUser) {
+                        loginStatus.classList.remove('hidden');
+                        if (loginText) loginText.textContent = msg;
+                    } else {
+                        // Si ya estamos dentro, usar notificación normal pero con ID para no repetir
+                        showNotification(msg, "info", "sync-songs");
                     }
                 }
+                
+                // Ocultar status de login al terminar
+                const loginStatus = document.getElementById('loginLoadingStatus');
+                if (loginStatus) loginStatus.classList.add('hidden');
                 
                 // Ordenar por ID para que coincida exactamente con el orden de la PC (maestro)
                 allSongs.sort((a,b) => (a.id || 0) - (b.id || 0));
@@ -1250,27 +1263,42 @@ function addItemToCartFinal(type, item, obs) {
     updateSendButtonState();
 }
 
-function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success', id = null) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
     
-    const toast = document.createElement('div');
-    toast.className = 'toast-mobile';
+    let toast = id ? document.getElementById(`toast-${id}`) : null;
+    let isNew = false;
+    
+    if (!toast) {
+        toast = document.createElement('div');
+        if (id) toast.id = `toast-${id}`;
+        toast.className = 'toast-mobile';
+        isNew = true;
+    }
     
     const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
     if (type === 'error') toast.style.background = '#e74c3c';
+    else if (type === 'info') toast.style.background = 'var(--wine-accent)';
     
     toast.innerHTML = `
         <i class="fa-solid ${icon}"></i>
         <span>${message}</span>
     `;
     
-    container.appendChild(toast);
+    if (isNew) {
+        container.appendChild(toast);
+    } else {
+        // Si ya existe, reiniciamos la animación de entrada si estaba saliendo
+        toast.classList.remove('toast-fade-out');
+    }
     
-    setTimeout(() => {
+    // Auto-eliminar
+    if (toast.timeout) clearTimeout(toast.timeout);
+    toast.timeout = setTimeout(() => {
         toast.classList.add('toast-fade-out');
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, type === 'info' ? 5000 : 3000);
 }
 
 function closeObsModal() {
