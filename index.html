@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,7 +12,7 @@
     <link rel="stylesheet" href="css/mobile_style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    
+
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
@@ -21,6 +22,7 @@
     </script>
     <!-- Firebase SDK (will configure later) -->
 </head>
+
 <body>
     <div id="app-mobile" class="hidden">
         <!-- Pantalla de Login (Estilo PC) -->
@@ -30,15 +32,19 @@
                     <img src="favicon.png" alt="Logo" class="mini-logo">
                     <div class="brand-text">
                         <span class="brand-name">Proyector</span><span class="brand-accent">Pro</span>
-                        <span style="font-size: 0.6rem; background: var(--wine-accent); padding: 2px 6px; border-radius: 4px; color: var(--ocher-light); margin-left: 8px; vertical-align: middle; font-weight: 800;">MÓVIL</span>
+                        <span
+                            style="font-size: 0.6rem; background: var(--wine-accent); padding: 2px 6px; border-radius: 4px; color: var(--ocher-light); margin-left: 8px; vertical-align: middle; font-weight: 800;">MÓVIL</span>
                     </div>
                 </div>
-                
-                <h2 style="margin-bottom: 0.5rem; text-align: center; color: var(--text-main); font-size: 1.5rem;">Iniciar Sesión</h2>
-                <p style="color: var(--text-muted); text-align: center; margin-bottom: 2rem; font-size: 0.85rem;">Ingrese sus credenciales para continuar</p>
-                
+
+                <h2 style="margin-bottom: 0.5rem; text-align: center; color: var(--text-main); font-size: 1.5rem;">
+                    Iniciar Sesión</h2>
+                <p style="color: var(--text-muted); text-align: center; margin-bottom: 2rem; font-size: 0.85rem;">
+                    Ingrese sus credenciales para continuar</p>
+
                 <!-- Indicador de Carga/Sincronización Inicial -->
-                <div id="loginLoadingStatus" class="hidden" style="background: rgba(212,175,55,0.08); padding: 10px 15px; border-radius: 8px; font-size: 0.8rem; color: var(--ocher-light); margin-bottom: 2rem; text-align: center; border: 1px solid rgba(212,175,55,0.15); display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <div id="loginLoadingStatus" class="hidden"
+                    style="background: rgba(212,175,55,0.08); padding: 10px 15px; border-radius: 8px; font-size: 0.8rem; color: var(--ocher-light); margin-bottom: 2rem; text-align: center; border: 1px solid rgba(212,175,55,0.15); display: flex; align-items: center; justify-content: center; gap: 10px;">
                     <i class="fa-solid fa-sync fa-spin" style="color: var(--ocher-base);"></i>
                     <span id="loginLoadingText">Cargando aplicación...</span>
                 </div>
@@ -46,17 +52,22 @@
                 <div class="auth-form-mobile" style="display: flex; flex-direction: column; gap: 1.25rem;">
                     <div class="field-group-mobile">
                         <label><i class="fa-solid fa-user"></i> Usuario</label>
-                        <input type="text" id="loginUser" class="mobile-input" placeholder="Nombre de usuario" style="padding-left: 1.25rem;">
+                        <input type="text" id="loginUser" class="mobile-input" placeholder="Nombre de usuario"
+                            style="padding-left: 1.25rem;">
                     </div>
                     <div class="field-group-mobile">
                         <label><i class="fa-solid fa-lock"></i> Contraseña</label>
-                        <input type="password" id="loginPass" class="mobile-input" placeholder="••••••••" style="padding-left: 1.25rem;">
+                        <input type="password" id="loginPass" class="mobile-input" placeholder="••••••••"
+                            style="padding-left: 1.25rem;">
                     </div>
-                    
-                    <button id="btnLoginAction" class="btn-cloud-send" onclick="handleLogin()" style="width: 100%; margin-top: 1rem;">
+
+                    <button id="btnLoginAction" class="btn-cloud-send" onclick="handleLogin()"
+                        style="width: 100%; margin-top: 1rem;">
                         ACCEDER
                     </button>
-                    <p id="loginError" class="error-msg" style="color: #e74c3c; text-align: center; margin-top: 1rem; font-size: 0.85rem; display:none;"></p>
+                    <p id="loginError" class="error-msg"
+                        style="color: #e74c3c; text-align: center; margin-top: 1rem; font-size: 0.85rem; display:none;">
+                    </p>
                 </div>
             </div>
         </div>
@@ -70,15 +81,20 @@
                         <span class="brand-name">Proyector</span><span class="brand-accent">Pro</span>
                     </div>
                 </div>
-                
-                <h2 style="margin-bottom: 1rem; text-align: center; color: var(--text-main); font-size: 1.4rem;">Preparando Aplicación</h2>
-                <p id="installStatus" style="color: var(--text-muted); text-align: center; margin-bottom: 2rem; font-size: 0.9rem;">Optimizando recursos locales...</p>
+
+                <h2 style="margin-bottom: 1rem; text-align: center; color: var(--text-main); font-size: 1.4rem;">
+                    Preparando Aplicación</h2>
+                <p id="installStatus"
+                    style="color: var(--text-muted); text-align: center; margin-bottom: 2rem; font-size: 0.9rem;">
+                    Optimizando recursos locales...</p>
 
                 <div class="progress-container-mobile">
                     <div id="installProgress" class="progress-bar-mobile"></div>
                 </div>
-                
-                <p style="color: var(--ocher-base); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-top: 1.5rem; letter-spacing: 1px;">Casi listo, por favor espera</p>
+
+                <p
+                    style="color: var(--ocher-base); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-top: 1.5rem; letter-spacing: 1px;">
+                    Casi listo, por favor espera</p>
             </div>
         </div>
         <header class="mobile-header">
@@ -87,29 +103,39 @@
                 <img src="favicon.png" alt="Logo" class="mini-logo">
                 <div class="brand-info-col" style="display: flex; flex-direction: column; justify-content: center;">
                     <div class="brand-name-row" style="display: flex; align-items: center; gap: 6px; line-height: 1;">
-                        <span class="brand-name" style="font-size: 0.95rem; font-weight: 700;">Proyector<span class="accent" style="color: var(--ocher-base);">Pro</span></span>
-                        <span class="mobile-tag" style="font-size: 0.5rem; background: var(--wine-accent); padding: 1px 4px; border-radius: 3px; color: var(--ocher-light); font-weight: 900; letter-spacing: 0.5px;">MÓVIL</span>
+                        <span class="brand-name" style="font-size: 0.95rem; font-weight: 700;">Proyector<span
+                                class="accent" style="color: var(--ocher-base);">Pro</span></span>
+                        <span class="mobile-tag"
+                            style="font-size: 0.5rem; background: var(--wine-accent); padding: 1px 4px; border-radius: 3px; color: var(--ocher-light); font-weight: 900; letter-spacing: 0.5px;">MÓVIL</span>
                     </div>
                     <div class="status-indicators" style="display: flex; gap: 4px; margin-top: 4px;">
-                        <span id="netIndicator" class="indicator offline" title="Internet" style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-wifi" style="font-size: 0.5rem;"></i></span>
-                        <span id="cloudIndicator" class="indicator offline" title="Nube" style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-cloud" style="font-size: 0.5rem;"></i></span>
+                        <span id="netIndicator" class="indicator offline" title="Internet"
+                            style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-wifi"
+                                style="font-size: 0.5rem;"></i></span>
+                        <span id="cloudIndicator" class="indicator offline" title="Nube"
+                            style="height: 12px; padding: 0 4px;"><i class="fa-solid fa-cloud"
+                                style="font-size: 0.5rem;"></i></span>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Lado Derecho: Acciones y Usuario -->
             <div class="user-badge" style="display: flex; align-items: center; gap: 8px;">
-                <button onclick="openCartPanel()" class="btn-cart-header" id="btnCartHeader" title="Enviar Lista" style="margin-right: 2px;">
+                <button onclick="openCartPanel()" class="btn-cart-header" id="btnCartHeader" title="Enviar Lista"
+                    style="margin-right: 2px;">
                     <i class="fa-solid fa-paper-plane" style="transform: rotate(-15deg); font-size: 0.9rem;"></i>
                     <span id="cartHeaderBadge" class="cart-badge">0</span>
                 </button>
-                
-                <div id="userProfile" class="user-info-wrap" onclick="toggleUserMenu()" style="background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+
+                <div id="userProfile" class="user-info-wrap" onclick="toggleUserMenu()"
+                    style="background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fa-solid fa-circle-user" style="color: var(--ocher-base); font-size: 1rem;"></i>
-                    <span id="userName" style="max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-weight: 600; color: var(--ocher-light);">Visitante</span>
+                    <span id="userName"
+                        style="max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-weight: 600; color: var(--ocher-light);">Visitante</span>
                 </div>
 
-                <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión" style="width: 32px; height: 32px; min-width: 32px;">
+                <button onclick="handleLogout()" class="btn-mini-logout" title="Cerrar Sesión"
+                    style="width: 32px; height: 32px; min-width: 32px;">
                     <i class="fa-solid fa-power-off" style="font-size: 0.8rem;"></i>
                 </button>
             </div>
@@ -118,12 +144,18 @@
         <main class="mobile-content">
             <!-- Navegación por módulos (Tabs Inferiores) -->
             <section id="module-selector" class="module-tabs">
-                <button class="tab-btn active" data-tab="biblias"><i class="fa-solid fa-book-bible"></i><span>Biblias</span></button>
-                <button class="tab-btn" data-tab="canciones"><i class="fa-solid fa-music"></i><span>Canciones</span></button>
-                <button class="tab-btn" data-tab="favoritosCantos"><i class="fa-solid fa-star"></i><span>Favoritos</span></button>
-                <button class="tab-btn" data-tab="anuncios"><i class="fa-solid fa-bullhorn"></i><span>Anuncios</span></button>
-                <button class="tab-btn" data-tab="historialVersiculos"><i class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></button>
-                <button class="tab-btn" data-tab="notas"><i class="fa-solid fa-pen-to-square"></i><span>Notas</span></button>
+                <button class="tab-btn active" data-tab="biblias"><i
+                        class="fa-solid fa-book-bible"></i><span>Biblias</span></button>
+                <button class="tab-btn" data-tab="canciones"><i
+                        class="fa-solid fa-music"></i><span>Canciones</span></button>
+                <button class="tab-btn" data-tab="favoritosCantos"><i
+                        class="fa-solid fa-star"></i><span>Favoritos</span></button>
+                <button class="tab-btn" data-tab="anuncios"><i
+                        class="fa-solid fa-bullhorn"></i><span>Anuncios</span></button>
+                <button class="tab-btn" data-tab="historialVersiculos"><i
+                        class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></button>
+                <button class="tab-btn" data-tab="notas"><i
+                        class="fa-solid fa-pen-to-square"></i><span>Notas</span></button>
             </section>
 
             <!-- Contenedores de Paneles -->
@@ -131,25 +163,30 @@
                 <!-- Panel 1: Biblias (Navegación Jerárquica) -->
                 <div class="panel active" data-id="biblias">
                     <div class="panel-header-mini">
-                        <div id="bibleBreadcrumb" class="bible-breadcrumb hidden" style="margin-bottom: 10px; margin-top: 5px;">
+                        <div id="bibleBreadcrumb" class="bible-breadcrumb hidden"
+                            style="margin-bottom: 10px; margin-top: 5px;">
                             <button onclick="bibleBack()" class="btn-back" style="margin-right: 15px;">
                                 <i class="fa-solid fa-arrow-left"></i>
                             </button>
-                            <div id="biblePath" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.9rem;"></div>
+                            <div id="biblePath"
+                                style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.9rem;">
+                            </div>
                         </div>
                         <h2 id="bibleTitleMain" style="margin-bottom: 5px;">Biblias</h2>
                     </div>
 
                     <div class="search-wrap-mobile">
                         <i class="fa-solid fa-magnifying-glass search-icon-overlay"></i>
-                        <input type="text" id="bibleSearchGlobal" placeholder="Buscar versículo o palabra..." class="mobile-input">
+                        <input type="text" id="bibleSearchGlobal" placeholder="Buscar versículo o palabra..."
+                            class="mobile-input">
                         <i id="clearBibleSearch" class="fa-solid fa-circle-xmark clear-search-icon hidden"></i>
                     </div>
 
                     <!-- VISTA 1: Versiones -->
                     <div id="viewVersions" class="bible-view">
                         <div class="mobile-list-header">SELECCIONA VERSIÓN</div>
-                        <div class="mobile-grid-list" id="bibleListCloud" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="mobile-grid-list" id="bibleListCloud"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div class="loading-state">Conectando...</div>
                         </div>
                     </div>
@@ -157,26 +194,33 @@
                     <!-- VISTA 2: Libros -->
                     <div id="viewBooks" class="bible-view hidden">
                         <div class="mobile-list-header">ANTIGUO TESTAMENTO</div>
-                        <div class="mobile-grid-list" id="bibleBooksOT" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
-                        
+                        <div class="mobile-grid-list" id="bibleBooksOT"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+
                         <div class="mobile-list-header">NUEVO TESTAMENTO</div>
-                        <div class="mobile-grid-list" id="bibleBooksNT" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+                        <div class="mobile-grid-list" id="bibleBooksNT"
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
                     </div>
 
                     <div id="viewChapters" class="bible-view hidden">
                         <div class="mobile-list-header">SELECCIONA CAPÍTULO</div>
-                        <div class="mobile-grid-list" id="bibleChaptersCloud" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 10px; justify-content: center;"></div>
+                        <div class="mobile-grid-list" id="bibleChaptersCloud"
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 10px; justify-content: center;">
+                        </div>
                     </div>
 
                     <div id="viewVerses" class="bible-view hidden">
                         <div class="verses-header-premium" id="versesHeader">
                             <span id="versesHeaderTitle">CITAS POR ENVIAR</span>
-                            <button onclick="addSelectedVersesToCart()" class="btn-cloud-send" style="background: var(--ocher-base); color: var(--bg-dark); border: none; padding: 6px 14px; border-radius: 12px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0; width: auto !important;">
+                            <button onclick="addSelectedVersesToCart()" class="btn-cloud-send"
+                                style="background: var(--ocher-base); color: var(--bg-dark); border: none; padding: 6px 14px; border-radius: 12px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0; width: auto !important;">
                                 <i class="fa-solid fa-plus"></i> AÑADIR
                             </button>
                         </div>
-                        <div id="bibleVersesTextCloud" class="mobile-grid-list" style="flex:1; overflow-y: auto; padding-bottom: 20px;">
-                            <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> Obteniendo de la PC...</div>
+                        <div id="bibleVersesTextCloud" class="mobile-grid-list"
+                            style="flex:1; overflow-y: auto; padding-bottom: 20px;">
+                            <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> Obteniendo de la
+                                PC...</div>
                         </div>
                     </div>
 
@@ -188,11 +232,13 @@
                     </div>
                     <div class="search-wrap-mobile">
                         <i class="fa-solid fa-music search-icon-overlay"></i>
-                        <input type="text" id="songSearchGlobal" placeholder="Buscar canción por título..." class="mobile-input">
+                        <input type="text" id="songSearchGlobal" placeholder="Buscar canción por título..."
+                            class="mobile-input">
                         <i id="clearSongSearch" class="fa-solid fa-circle-xmark clear-search-icon hidden"></i>
                     </div>
-                    
-                    <div class="song-view" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+
+                    <div class="song-view"
+                        style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                         <div id="songListCloud" class="mobile-grid-list">
                             <div class="loading-state">...</div>
                         </div>
@@ -203,13 +249,14 @@
                 <div class="panel" data-id="favoritosCantos">
                     <div class="panel-header-mini">
                         <h2>Canciones Favoritas</h2>
-                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Repertorio seleccionado desde la PC</p>
+                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Repertorio seleccionado
+                            desde la PC</p>
                     </div>
                     <div class="search-wrap-mobile">
                         <i class="fa-solid fa-magnifying-glass search-icon-overlay"></i>
                         <input type="text" id="favSearch" placeholder="Buscar en favoritos..." class="mobile-input">
                     </div>
-                    
+
                     <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto;">
                         <div id="favoritosCantosList" class="mobile-grid-list" style="padding-bottom: 30px;">
                             <div class="loading-state">
@@ -224,8 +271,9 @@
                     <div class="panel-header-mini">
                         <h2>Anuncios</h2>
                     </div>
-                    <div id="announcementListCloud" class="mobile-grid-list" style="flex: 1; min-height: 120px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
-                         <div class="loading-state">...</div>
+                    <div id="announcementListCloud" class="mobile-grid-list"
+                        style="flex: 1; min-height: 120px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
+                        <div class="loading-state">...</div>
                     </div>
 
                     <button class="btn-new-ann" id="btnToggleNewAnn">
@@ -237,21 +285,26 @@
                             <div class="mobile-list-header">MODIFICAR O CREAR</div>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
-                        
+
                         <div class="form-group-mobile" style="margin-top: 10px;">
                             <input type="hidden" id="manualAnnId">
                             <label>Título del Anuncio</label>
-                            <input type="text" id="manualAnnTitle" class="mobile-input" placeholder="Ej: Santa Cena, Ayuno..." style="margin-bottom: 8px;">
-                            
+                            <input type="text" id="manualAnnTitle" class="mobile-input"
+                                placeholder="Ej: Santa Cena, Ayuno..." style="margin-bottom: 8px;">
+
                             <label>Contenido / Mensaje</label>
-                            <textarea id="manualAnnText" class="mobile-textarea" placeholder="Escribe el anuncio aquí..."></textarea>
+                            <textarea id="manualAnnText" class="mobile-textarea"
+                                placeholder="Escribe el anuncio aquí..."></textarea>
                             <div class="timer-settings-mobile">
-                                <div class="time-item"> <label>Tiempo</label> <input type="number" id="manualAnnTime" value="20"> <span>seg</span> </div>
+                                <div class="time-item"> <label>Tiempo</label> <input type="number" id="manualAnnTime"
+                                        value="20"> <span>seg</span> </div>
                             </div>
-                            <button id="btnSendManualAnn" class="btn-cloud-send" style="margin-top: 10px; background: var(--wine-accent);">
+                            <button id="btnSendManualAnn" class="btn-cloud-send"
+                                style="margin-top: 10px; background: var(--wine-accent);">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> <span id="btnAnnLabel">AÑADIR</span>
                             </button>
-                            <button id="btnCancelAnnEdit" class="btn-cloud-send hidden" style="margin-top: 5px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white;">
+                            <button id="btnCancelAnnEdit" class="btn-cloud-send hidden"
+                                style="margin-top: 5px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white;">
                                 CANCELAR EDICIÓN
                             </button>
                         </div>
@@ -271,7 +324,8 @@
                             <option value="tecnica" selected>Técnica (Cabina)</option>
                             <option value="asistencia">Reporte Asistencia</option>
                         </select>
-                        <textarea id="noteText" class="mobile-textarea" placeholder="Escribe tu nota u observación..."></textarea>
+                        <textarea id="noteText" class="mobile-textarea"
+                            placeholder="Escribe tu nota u observación..."></textarea>
                         <button id="btnSendNote" class="btn-cloud-send" style="margin-top: 10px;">
                             <i class="fa-solid fa-paper-plane"></i> ENVIAR NOTA
                         </button>
@@ -289,14 +343,16 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
                                 <h2>Historial de Lectura</h2>
-                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Versículos proyectados recientemente</p>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Versículos
+                                    proyectados recientemente</p>
                             </div>
-                            <button onclick="clearVerseHistory()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
+                            <button onclick="clearVerseHistory()"
+                                style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
                                 <i class="fa-solid fa-eraser"></i> LIMPIAR
                             </button>
                         </div>
                     </div>
-                    
+
                     <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto;">
                         <div id="verseHistoryList" class="mobile-grid-list" style="padding-bottom: 30px;">
                             <div class="empty-state">No hay versículos en el historial de hoy.</div>
@@ -310,15 +366,18 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
                                 <h2>Lista de Envío</h2>
-                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Revisa tu selección antes de enviar</p>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Revisa tu
+                                    selección antes de enviar</p>
                             </div>
-                            <button onclick="clearCart()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
+                            <button onclick="clearCart()"
+                                style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
                                 <i class="fa-solid fa-trash"></i> VACIAR
                             </button>
                         </div>
                     </div>
 
-                    <div id="unifiedCartContent" style="display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 5px;">
+                    <div id="unifiedCartContent"
+                        style="display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 5px;">
                         <div class="cart-section">
                             <div class="mobile-list-header">Citas Bíblicas</div>
                             <div id="bibleCart" class="mobile-grid-list"></div>
@@ -330,18 +389,25 @@
                     </div>
 
                     <!-- Footer fijo del carrito -->
-                    <div class="cart-footer" style="flex-shrink: 0; background: var(--bg-dark); border-top: 1px solid var(--glass-border); padding-top: 8px;">
-                        <div class="obs-wrap" style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 12px; border: 1px solid var(--glass-border);">
-                            <label style="font-size: 0.6rem; color: var(--ocher-base); font-weight: 800; margin-bottom: 5px; display: block; text-transform: uppercase;">Observaciones del Envío</label>
-                            <textarea id="globalObservations" class="mobile-textarea" placeholder="Ej: Leer después del coro..." style="min-height: 45px; font-size: 0.8rem;"></textarea>
+                    <div class="cart-footer"
+                        style="flex-shrink: 0; background: var(--bg-dark); border-top: 1px solid var(--glass-border); padding-top: 8px;">
+                        <div class="obs-wrap"
+                            style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <label
+                                style="font-size: 0.6rem; color: var(--ocher-base); font-weight: 800; margin-bottom: 5px; display: block; text-transform: uppercase;">Observaciones
+                                del Envío</label>
+                            <textarea id="globalObservations" class="mobile-textarea"
+                                placeholder="Ej: Leer después del coro..."
+                                style="min-height: 45px; font-size: 0.8rem;"></textarea>
                         </div>
 
                         <div style="margin-top: 8px;">
-                            <button id="btnSendToCloud" class="btn-cloud-send" disabled style="width: 100%; padding: 0.9rem; font-size: 1rem;">
+                            <button id="btnSendToCloud" class="btn-cloud-send" disabled
+                                style="width: 100%; padding: 0.9rem; font-size: 1rem;">
                                 <i class="fa-solid fa-paper-plane"></i> ENVIAR
                             </button>
                         </div>
-                        <div style="height: 10px;"></div> 
+                        <div style="height: 10px;"></div>
                     </div>
                 </div>
             </div>
@@ -351,20 +417,28 @@
     <!-- Modal Previsualización de Canto -->
     <div id="modalPreview" class="mobile-modal hidden">
         <div class="modal-content">
-            <header class="modal-header" style="background: var(--wine-accent); border-radius: 20px 20px 0 0; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <header class="modal-header"
+                style="background: var(--wine-accent); border-radius: 20px 20px 0 0; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; flex-direction: column; flex: 1;">
-                    <h3 id="previewTitle" style="color: white; font-size: 1.15rem; margin: 0; line-height: 1.2;">Título del Canto</h3>
-                    <span id="previewTone" class="hidden" style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9; margin-top: 2px;">Tono: -</span>
+                    <h3 id="previewTitle" style="color: white; font-size: 1.15rem; margin: 0; line-height: 1.2;">Título
+                        del Canto</h3>
+                    <span id="previewTone" class="hidden"
+                        style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9; margin-top: 2px;">Tono:
+                        -</span>
                 </div>
                 <button onclick="closePreview()" class="close-modal-btn" style="margin: 0; flex-shrink: 0;">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </header>
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1.5rem; background: var(--bg-dark);">
-                <div id="previewLyrics" style="font-family: inherit; font-size: 1.1rem; line-height: 1.6; color: #fff; border: none; padding: 0;"></div>
+                <div id="previewLyrics"
+                    style="font-family: inherit; font-size: 1.1rem; line-height: 1.6; color: #fff; border: none; padding: 0;">
+                </div>
             </div>
-            <footer class="modal-footer" id="modalPreviewFooter" style="padding: 1rem 1.5rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border);">
-                <button id="btnAddFromPreview" class="btn-cloud-send" style="width: 100%; padding: 1rem; border-radius: 15px; font-weight: 800; text-transform: uppercase;">
+            <footer class="modal-footer" id="modalPreviewFooter"
+                style="padding: 1rem 1.5rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border);">
+                <button id="btnAddFromPreview" class="btn-cloud-send"
+                    style="width: 100%; padding: 1rem; border-radius: 15px; font-weight: 800; text-transform: uppercase;">
                     AÑADIR
                 </button>
             </footer>
@@ -373,78 +447,111 @@
     <!-- Modal Observaciones (Nuevo) -->
     <div id="modalObs" class="mobile-modal hidden">
         <div class="modal-content" style="max-height: auto; height: auto; align-self: center;">
-            <header class="modal-header" style="background: var(--wine-accent); border-radius: 20px 20px 0 0; padding: 1.2rem;">
-                <h3 id="obsModalTitle" style="color: white; font-size: 1.1rem; margin: 0;">Observación para el Envío</h3>
+            <header class="modal-header"
+                style="background: var(--wine-accent); border-radius: 20px 20px 0 0; padding: 1.2rem;">
+                <h3 id="obsModalTitle" style="color: white; font-size: 1.1rem; margin: 0;">Observación para el Envío
+                </h3>
             </header>
             <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark);">
-                <textarea id="obsModalInput" class="mobile-textarea" placeholder="Ej: Cantar con júbilo, leer pausado..." style="min-height: 100px; margin: 0;"></textarea>
+                <textarea id="obsModalInput" class="mobile-textarea"
+                    placeholder="Ej: Cantar con júbilo, leer pausado..."
+                    style="min-height: 100px; margin: 0;"></textarea>
             </div>
-            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
-                <button onclick="closeObsModal()" style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
-                <button id="btnConfirmObs" class="btn-cloud-send" style="flex: 2; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800;">CONFIRMAR</button>
+            <footer class="modal-footer"
+                style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
+                <button onclick="closeObsModal()"
+                    style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+                <button id="btnConfirmObs" class="btn-cloud-send"
+                    style="flex: 2; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800;">CONFIRMAR</button>
             </footer>
         </div>
     </div>
     <!-- Modal Confirmación (Nuevo) -->
     <div id="modalConfirm" class="mobile-modal hidden" style="z-index: 200000;">
-        <div class="modal-content" style="max-height: auto; height: auto; align-self: center; border-color: var(--wine-accent); width: 90%; margin: 0 auto;">
-            <header class="modal-header" style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.2rem;">
+        <div class="modal-content"
+            style="max-height: auto; height: auto; align-self: center; border-color: var(--wine-accent); width: 90%; margin: 0 auto;">
+            <header class="modal-header"
+                style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.2rem;">
                 <h3 style="color: white; font-size: 1.1rem; margin: 0;">Confirmación</h3>
             </header>
             <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark); text-align: center;">
                 <p id="confirmModalText" style="color: white; font-size: 1rem; line-height: 1.5; margin: 0;"></p>
             </div>
-            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
-                <button id="btnCancelConfirm" style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
-                <button id="btnAcceptConfirm" class="btn-cloud-send" style="flex: 1; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800; background: var(--wine-accent);">ACEPTAR</button>
+            <footer class="modal-footer"
+                style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
+                <button id="btnCancelConfirm"
+                    style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+                <button id="btnAcceptConfirm" class="btn-cloud-send"
+                    style="flex: 1; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800; background: var(--wine-accent);">ACEPTAR</button>
             </footer>
         </div>
     </div>
     <!-- User Options Menu Modal (Mobile) -->
     <div id="userOptionsModal" class="mobile-modal hidden" style="z-index: 100005;">
-        <div class="modal-content" style="max-height: auto; height: auto; align-self: center; width: 85%; margin: 0 auto;">
-            <header class="modal-header" style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.5rem; text-align: center;">
-                <i class="fa-solid fa-circle-user" style="font-size: 3rem; color: var(--ocher-base); margin-bottom: 10px; display: block;"></i>
+        <div class="modal-content"
+            style="max-height: auto; height: auto; align-self: center; width: 85%; margin: 0 auto;">
+            <header class="modal-header"
+                style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.5rem; text-align: center;">
+                <i class="fa-solid fa-circle-user"
+                    style="font-size: 3rem; color: var(--ocher-base); margin-bottom: 10px; display: block;"></i>
                 <h3 id="optModalUserName" style="color: white; font-size: 1.25rem; margin: 0;">Usuario</h3>
             </header>
-            <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark); display: flex; flex-direction: column; gap: 12px;">
-                <button onclick="showChangePassModal()" class="btn-cloud-send" style="background: rgba(255,255,255,0.05); margin:0;">
+            <div class="modal-body"
+                style="padding: 1.5rem; background: var(--bg-dark); display: flex; flex-direction: column; gap: 12px;">
+                <button onclick="showChangePassModal()" class="btn-cloud-send"
+                    style="background: rgba(255,255,255,0.05); margin:0;">
                     <i class="fa-solid fa-key"></i> CAMBIAR CONTRASEÑA
                 </button>
-                <button onclick="handleLogout()" class="btn-cloud-send" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border-color: #e74c3c; margin:0;">
+                <button onclick="handleLogout()" class="btn-cloud-send"
+                    style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border-color: #e74c3c; margin:0;">
                     <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
                 </button>
             </div>
-            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border);">
-                <button onclick="closeUserMenu()" style="width: 100%; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+            <footer class="modal-footer"
+                style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border);">
+                <button onclick="closeUserMenu()"
+                    style="width: 100%; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
             </footer>
         </div>
     </div>
 
     <!-- Password Change Modal (Mobile) -->
     <div id="passwordModal" class="mobile-modal hidden" style="z-index: 100006;">
-        <div class="modal-content" style="max-height: auto; height: auto; align-self: center; width: 90%; margin: 0 auto;">
-            <header class="modal-header" style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.2rem;">
-                <h3 style="color: white; font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-key"></i> Cambiar Contraseña</h3>
+        <div class="modal-content"
+            style="max-height: auto; height: auto; align-self: center; width: 90%; margin: 0 auto;">
+            <header class="modal-header"
+                style="background: var(--wine-accent); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1.2rem;">
+                <h3 style="color: white; font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-key"></i> Cambiar
+                    Contraseña</h3>
             </header>
             <div class="modal-body" style="padding: 1.5rem; background: var(--bg-dark);">
                 <div class="form-group-mobile" style="margin-bottom: 15px;">
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Contraseña Actual</label>
+                    <label
+                        style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Contraseña
+                        Actual</label>
                     <input type="password" id="oldPassInput" class="mobile-input" placeholder="••••••••">
                 </div>
                 <div class="form-group-mobile" style="margin-bottom: 15px;">
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Nueva Contraseña</label>
+                    <label
+                        style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Nueva
+                        Contraseña</label>
                     <input type="password" id="newPass1Input" class="mobile-input" placeholder="••••••••">
                 </div>
                 <div class="form-group-mobile">
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Confirmar Clave</label>
+                    <label
+                        style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Confirmar
+                        Clave</label>
                     <input type="password" id="newPass2Input" class="mobile-input" placeholder="••••••••">
                 </div>
-                <p id="passErrText" class="error-msg" style="color: #e74c3c; margin-top: 10px; font-size: 0.8rem; text-align: center; display:none;"></p>
+                <p id="passErrText" class="error-msg"
+                    style="color: #e74c3c; margin-top: 10px; font-size: 0.8rem; text-align: center; display:none;"></p>
             </div>
-            <footer class="modal-footer" style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
-                <button onclick="closePassModal()" style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
-                <button id="btnSaveMobPass" onclick="saveNewPassword()" class="btn-cloud-send" style="flex: 1.5; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800; background: var(--wine-accent);">GUARDAR</button>
+            <footer class="modal-footer"
+                style="padding: 1.2rem; background: var(--bg-dark); border-top: 1px solid var(--glass-border); display: flex; gap: 10px;">
+                <button onclick="closePassModal()"
+                    style="flex: 1; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); font-weight: 700;">CANCELAR</button>
+                <button id="btnSaveMobPass" onclick="saveNewPassword()" class="btn-cloud-send"
+                    style="flex: 1.5; padding: 1rem; border-radius: 12px; margin: 0; font-weight: 800; background: var(--wine-accent);">GUARDAR</button>
             </footer>
         </div>
     </div>
@@ -460,4 +567,5 @@
     <!-- Scripts -->
     <script src="js/app_mobile.js"></script>
 </body>
+
 </html>
