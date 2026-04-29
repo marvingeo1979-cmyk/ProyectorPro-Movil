@@ -1823,6 +1823,56 @@ window.handleLogout = function() {
     });
 };
 
+window.handleAppRepair = function() {
+    showConfirm("Esto limpiará la memoria temporal (caché) y reiniciará la app para solucionar errores de guardado. ¿Deseas continuar?", async () => {
+        try {
+            showNotification("Reparando base de datos...", "info", "repair");
+            
+            // 1. Desactivar red y persistencia de Firestore
+            if (window.firebase) {
+                try {
+                    await firebase.firestore().terminate();
+                    await firebase.firestore().clearPersistence();
+                } catch(e) { console.warn("Firestore cleanup skipped", e); }
+            }
+
+            // 2. Limpiar LocalStorage
+            localStorage.clear();
+
+            // 3. Limpiar Bases de Datos IndexedDB
+            if (window.indexedDB) {
+                const dbs = ['ProyectorProMobile', 'ProyectorProDB', 'firestoreDb'];
+                dbs.forEach(dbName => {
+                    try { indexedDB.deleteDatabase(dbName); } catch(e) {}
+                });
+            }
+
+            // 4. Limpiar Caches y Unregister Service Worker
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+
+            if (navigator.serviceWorker) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+
+            // 5. Reiniciar App
+            showNotification("Reparación completa. Reiniciando...", "success", "repair");
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1000);
+
+        } catch (e) {
+            console.error("Error en reparación:", e);
+            showNotification("Error al reparar: " + e.message, "error");
+        }
+    });
+};
+
 function checkUserSession() {
     const app = document.getElementById('app-mobile');
     const login = document.getElementById('loginScreen');
