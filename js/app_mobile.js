@@ -46,7 +46,7 @@ window.bibleState = {
     chapter: null,
     selectedVerses: [] 
 };
-window.cloudSongs = [];
+window.cloudSongs = JSON.parse(localStorage.getItem('mobileCloudSongs')) || [];
 window.cloudAnnouncements = JSON.parse(localStorage.getItem('mobileCloudAnn')) || [];
 window.verseHistory = JSON.parse(localStorage.getItem('mobileVerseHistory')) || [];
 window.pendingDeletions = JSON.parse(localStorage.getItem('mobilePendingDeletions')) || [];
@@ -323,16 +323,23 @@ function initCloudListeners() {
         
         const data = doc.data();
         const numChunks = data.numChunks || 0;
+        const cloudHash = data.libHash || 'legacy';
+        const localHash = localStorage.getItem('mobileSongsHash') || '';
+
+        // 1. Verificamos si ya tenemos esta versión de la librería
+        if (cloudHash === localHash && window.cloudSongs.length > 0) {
+            console.log("[Sync] Librería de canciones ya está al día. Omitiendo descarga.");
+            renderSongLibrary(window.cloudSongs);
+            return;
+        }
         
         if (numChunks > 0) {
-            console.log(`[Sync] Detectados ${numChunks} bloques de canciones...`);
+            console.log(`[Sync] Nueva versión detectada (${cloudHash}). Sincronizando...`);
             
-            // Usamos un semáforo sencillo para evitar múltiples cargas simultáneas
             if (window.isFetchingChunks) return;
             window.isFetchingChunks = true;
 
             try {
-                // Descargar bloques uno a uno para mayor fiabilidad en conexiones inestables
                 let allSongs = [];
                 const chunkSize = 1; 
                 for (let i = 0; i < numChunks; i += chunkSize) {
@@ -350,44 +357,45 @@ function initCloudListeners() {
                     const percent = Math.round((i/numChunks)*100);
                     const msg = `Sincronizando canciones: ${percent}%`;
                     
-                    // Si estamos en login, mostrar en el status dedicado
                     const loginStatus = document.getElementById('loginLoadingStatus');
                     const loginText = document.getElementById('loginLoadingText');
                     if (loginStatus && !window.currentUser) {
                         loginStatus.classList.remove('hidden');
                         if (loginText) loginText.textContent = msg;
                     } else {
-                        // Si ya estamos dentro, usar notificación normal pero con ID para no repetir
                         showNotification(msg, "info", "sync-songs");
                     }
                 }
                 
-                // Ocultar status de login al terminar
                 const loginStatus = document.getElementById('loginLoadingStatus');
                 if (loginStatus) loginStatus.classList.add('hidden');
                 
-                // Ordenar por ID para que coincida exactamente con el orden de la PC (maestro)
                 allSongs.sort((a,b) => (a.id || 0) - (b.id || 0));
                 
                 window.cloudSongs = allSongs;
+                
+                // 2. Guardar en memoria local para la próxima vez
+                localStorage.setItem('mobileCloudSongs', JSON.stringify(allSongs));
+                localStorage.setItem('mobileSongsHash', cloudHash);
+                
                 renderSongLibrary(window.cloudSongs);
-                console.log(`[Sync] ${window.cloudSongs.length} canciones reconstruidas con éxito.`);
+                console.log(`[Sync] ${window.cloudSongs.length} canciones sincronizadas y guardadas localmente.`);
             } catch (err) {
                 console.error("[Sync] Error al reconstruir bloques:", err);
-                renderSongLibrary([]); // Limpiar el estado de carga
-                showNotification("Error al cargar canciones de la nube. Intenta sincronizar de nuevo.", "error");
+                showNotification("Error al cargar canciones. Intenta sincronizar de nuevo.", "error");
             } finally {
                 window.isFetchingChunks = false;
             }
         } else if (data.lista) {
-            // Soporte para formato antiguo (un solo doc)
+            // Formato antiguo o lista pequeña
             const oldList = data.lista || [];
             oldList.sort((a,b) => (a.id || 0) - (b.id || 0));
             window.cloudSongs = oldList;
+            localStorage.setItem('mobileCloudSongs', JSON.stringify(oldList));
+            localStorage.setItem('mobileSongsHash', cloudHash);
             renderSongLibrary(window.cloudSongs);
-            console.log(`[Sync] ${window.cloudSongs.length} canciones cargadas (Formato antiguo).`);
+            console.log(`[Sync] ${window.cloudSongs.length} canciones cargadas (Legacy).`);
         } else {
-            // Documento vacío o sin canciones (ej: total: 0)
             window.cloudSongs = [];
             renderSongLibrary([]);
         }
