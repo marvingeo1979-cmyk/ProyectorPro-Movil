@@ -196,20 +196,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 3. Inicializar Lógica de la App
-    if (splashStatus) splashStatus.textContent = "Conectando con la nube...";
+    if (splashStatus) splashStatus.textContent = "Inicializando paneles...";
     initPanels();
     initSearch();
-    initCloudListeners();
-    initVerseCacheListener();
-    initNotesListener();
+    
+    // Sincronizar con la nube solo si ya hay una sesión activa
+    if (window.currentUser) {
+        startCloudSync();
+    }
     
     if (splashProgress) splashProgress.style.width = '60%';
 
     // 4. Pequeño delay para asegurar que Firestore conecte y cargue lo esencial
     setTimeout(async () => {
         if (splashStatus) splashStatus.textContent = "Cargando favoritos y preferencias...";
-        initSongFavoritesListener();
         renderCart();
+        renderSongFavorites(); // Cargar favoritos inmediatamente desde la caché local
         renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
         
         if (splashProgress) splashProgress.style.width = '90%';
@@ -304,12 +306,50 @@ function initSyncFormLogic() {
     });
 }
 
+let cloudUnsubscribeFunctions = [];
+
+function startCloudSync() {
+    if (!window.currentUser) {
+        console.log("[Mobile Sync] Omitiendo sincronización: No hay usuario autenticado.");
+        return;
+    }
+    stopCloudSync();
+    console.log("[Mobile Sync] Iniciando todos los listeners de la nube...");
+    
+    const unsubKeywords = initKeywordsListener();
+    if (unsubKeywords) cloudUnsubscribeFunctions.push(unsubKeywords);
+    
+    const unsubsCloud = initCloudListeners();
+    if (Array.isArray(unsubsCloud)) {
+        cloudUnsubscribeFunctions = cloudUnsubscribeFunctions.concat(unsubsCloud);
+    }
+    
+    const unsubVerse = initVerseCacheListener();
+    if (unsubVerse) cloudUnsubscribeFunctions.push(unsubVerse);
+    
+    const unsubNotes = initNotesListener();
+    if (unsubNotes) cloudUnsubscribeFunctions.push(unsubNotes);
+    
+    const unsubFavs = initSongFavoritesListener();
+    if (unsubFavs) cloudUnsubscribeFunctions.push(unsubFavs);
+}
+
+function stopCloudSync() {
+    if (cloudUnsubscribeFunctions.length > 0) {
+        console.log(`[Mobile Sync] Deteniendo ${cloudUnsubscribeFunctions.length} listeners activos de Firestore...`);
+        cloudUnsubscribeFunctions.forEach(unsub => {
+            if (typeof unsub === 'function') {
+                try { unsub(); } catch(e) { console.warn("[Mobile Sync] Error deteniendo listener:", e); }
+            }
+        });
+        cloudUnsubscribeFunctions = [];
+    }
+}
+
 function initCloudListeners() {
     console.log("[Mobile] Conectado a la nube.");
 
-    initKeywordsListener();
-
-    db.collection('biblioteca_biblias').doc('master').onSnapshot(doc => {
+    const unsubBibles = db.collection('biblioteca_biblias').doc('master').onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
             window.bibleVersions = data.lista || [];
@@ -403,13 +443,14 @@ function initCloudListeners() {
         console.error("[Sync] Error en listener de canciones:", err);
     });
 
-    db.collection('biblioteca_anuncios').doc('master').onSnapshot(doc => {
+    const unsubAnn = db.collection('biblioteca_anuncios').doc('master').onSnapshot(doc => {
         if (doc.exists) {
             // Protección contra reversión: Cooldown de seguridad
             const cooldown = 20000; // 20 segundos
             const diff = Date.now() - window.lastLibraryUpdate;
             if (diff < cooldown) {
-                console.log(`[Sync] Cooldown activo (${Math.round((cooldown - diff)/1000)}s). Mezclando solo si es más nuevo.`);
+                console.log(`[Sync] Cooldown activo (${Math.round((cooldown - diff)/1000)}s). Ignorando para evitar sobrescribir cambios locales.`);
+                return;
             }
 
             const cloudRaw = doc.data().lista || [];
@@ -462,11 +503,13 @@ function initCloudListeners() {
             }
         }
     });
+
+    return [unsubBibles, unsubSongs, unsubAnn];
 }
 
 function initNotesListener() {
     const today = new Date().toISOString().split('T')[0];
-    db.collection('notas')
+    return db.collection('notas')
         .where('fecha', '>=', today)
         .onSnapshot(snapshot => {
             const container = document.getElementById('notesListCloud');
@@ -502,7 +545,7 @@ function initNotesListener() {
 
 function initKeywordsListener() {
     console.log("[Mobile] Escuchando etiquetas de canciones...");
-    db.collection('configuracion').doc('etiquetas').onSnapshot(doc => {
+    return db.collection('configuracion').doc('etiquetas').onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.lista && Array.isArray(data.lista)) {
@@ -710,17 +753,20 @@ async function renderChapterVerses() {
 
     // 2. Si no, pedir a la PC (Fallback)
     container.innerHTML = '<div class="loading-state">Pidiendo a PC...</div>';
-    await db.collection('peticiones_movil').doc('current').set({
+    db.collection('peticiones_movil').doc('current').set({
         type: 'GET_VERSES',
         version: state.version,
         bookId: state.book.id,
         chapter: state.chapter,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => {
+        console.error("[Mobile] Error pidiendo versículos a PC:", err);
+        container.innerHTML = '<div class="error-state">Error al conectar con PC.</div>';
     });
 }
 
 function initVerseCacheListener() {
-    db.collection('cache_capitulo').doc('current').onSnapshot(doc => {
+    return db.collection('cache_capitulo').doc('current').onSnapshot(doc => {
         if (!doc.exists) return;
         const data = doc.data();
         const state = window.bibleState;
@@ -1439,41 +1485,42 @@ async function handleGlobalSend() {
     }
     // ------------------------------------
 
-    try {
-        // Enviar a la nube (PC lo recibirÃ¡)
-        const msgRef = await db.collection('mensajes_nube').add(messageData);
-        
-        // Registro de AuditorÃ­a (Logs)
-        await db.collection('logs_movil').add({
-            ...messageData,
-            msgId: msgRef.id,
-            dateStr: new Date().toLocaleDateString(),
-            timeStr: new Date().toLocaleTimeString()
+    // Limpiar estado local y UI inmediatamente (Optimista)
+    window.cart = { bible: [], songs: [] };
+    if (document.getElementById('globalObservations')) document.getElementById('globalObservations').value = "";
+    saveCartState();
+    renderCart(); 
+    
+    // Volver a biblias de inmediato para una UI fluida
+    const bibleTab = document.querySelector('.tab-btn[data-tab="biblias"]');
+    if (bibleTab) bibleTab.click();
+    
+    showNotification("Enviando petición a la PC...", "info", "send-queue");
+
+    // Ejecutar escrituras asíncronamente en segundo plano
+    db.collection('mensajes_nube').add(messageData)
+        .then(msgRef => {
+            console.log("[Mobile] Petición enviada, id:", msgRef.id);
+            return db.collection('logs_movil').add({
+                ...messageData,
+                msgId: msgRef.id,
+                dateStr: new Date().toLocaleDateString(),
+                timeStr: new Date().toLocaleTimeString()
+            });
+        })
+        .then(() => {
+            showNotification("¡Petición enviada exitosamente!", "success", "send-queue");
+        })
+        .catch(e => {
+            console.error("[Mobile] Error enviando petición:", e);
+            showNotification("Guardado localmente. Se enviará al reconectar.", "warning", "send-queue");
+        })
+        .finally(() => {
+            // Asegurar restauración del botón
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+            updateSendButtonState();
         });
-
-        // Restaurar botón ANTES de renderizar el carrito (para que el badge exista de nuevo)
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
-
-        // Limpiar estado
-        window.cart = { bible: [], songs: [] };
-        if (document.getElementById('globalObservations')) document.getElementById('globalObservations').value = "";
-        saveCartState();
-        
-        renderCart(); 
-        showNotification("¡Petición enviada exitosamente!", "success");
-        // Volver a biblias después de enviar
-        const bibleTab = document.querySelector('.tab-btn[data-tab="biblias"]');
-        if (bibleTab) bibleTab.click();
-    } catch (e) {
-        console.error("Send error:", e);
-        showNotification("Error al enviar: " + e.message, "error");
-        // Asegurar restauración en caso de error
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
-    } finally {
-        updateSendButtonState();
-    }
 }
 
 async function handleManualAnnSend() {
@@ -1518,32 +1565,31 @@ async function handleManualAnnSend() {
     localStorage.setItem('mobileCloudAnn', JSON.stringify(window.cloudAnnouncements));
     renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
 
-    try {
-        await db.collection('peticiones_libreria').add({
-            type: 'UPDATE_ANN',
-            item: item,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
+    // Limpiar UI del formulario de inmediato (Optimista)
+    if (annId) {
+         showNotification("Guardando cambios...", "info", "save-ann");
+    } else {
+         showNotification("Añadiendo a la biblioteca...", "info", "save-ann");
+    }
+    
+    cancelAnnEdit(); 
+    const listContainer = document.getElementById('announcementListCloud');
+    if (listContainer) listContainer.scrollIntoView({ behavior: 'smooth' });
 
-        if (annId) {
-             showNotification("¡Biblioteca actualizada!", "success");
-        } else {
-             showNotification("¡Añadido a la biblioteca!", "success");
-        }
-        
-        cancelAnnEdit(); 
-        const listContainer = document.getElementById('announcementListCloud');
-        if (listContainer) listContainer.scrollIntoView({ behavior: 'smooth' });
-
-    } catch (e) {
-        console.error("Error saving announcement:", e);
-        showNotification("Error al guardar: " + e.message, "error");
-        // Restaurar texto si falló y no se reseteó
-        if (label) label.textContent = originalLabelText;
-    } finally {
+    // Guardar asíncronamente en segundo plano
+    db.collection('peticiones_libreria').add({
+        type: 'UPDATE_ANN',
+        item: item,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        showNotification(annId ? "¡Biblioteca actualizada!" : "¡Añadido a la biblioteca!", "success", "save-ann");
+    }).catch(e => {
+        console.error("[Mobile] Error saving announcement:", e);
+        showNotification("Error de sincronización con la PC", "warning", "save-ann");
+    }).finally(() => {
         if (btn) btn.disabled = false;
         if (icon) icon.className = originalIconClass;
-    }
+    });
 }
 
 async function handleNoteSend() {
@@ -1552,18 +1598,25 @@ async function handleNoteSend() {
 
     const bt = document.getElementById('btnSendNote');
     bt.disabled = true;
-    try {
-        await db.collection('notas').add({
-            texto: txt,
-            categoria: document.getElementById('noteCategory').value,
-            fecha: new Date().toISOString().split('T')[0],
-            usuario: document.getElementById('userName').textContent || 'Líder',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        document.getElementById('noteText').value = '';
-        showNotification("¡Nota enviada al equipo!", "success");
-    } catch(e) { showNotification(e.message, "error"); }
-    bt.disabled = false;
+    
+    // Limpiar campo e informar de inmediato (Optimista)
+    document.getElementById('noteText').value = '';
+    showNotification("Enviando nota...", "info", "send-note");
+
+    db.collection('notas').add({
+        texto: txt,
+        categoria: document.getElementById('noteCategory').value,
+        fecha: new Date().toISOString().split('T')[0],
+        usuario: document.getElementById('userName').textContent || 'Líder',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        showNotification("¡Nota enviada al equipo!", "success", "send-note");
+    }).catch(e => {
+        console.error("[Mobile] Error enviando nota:", e);
+        showNotification("Guardado localmente. Se enviará al reconectar.", "warning", "send-note");
+    }).finally(() => {
+        bt.disabled = false;
+    });
 }
 
 function updateSendButtonState() {
@@ -1710,6 +1763,11 @@ function initSearch() {
                 }
             }, 600);
         };
+
+        const favSearchInput = document.getElementById('favSearch');
+        if (favSearchInput) {
+            favSearchInput.oninput = (e) => renderSongFavorites(e.target.value.toLowerCase());
+        }
         
         if (bibleClear) {
             bibleClear.onclick = () => {
@@ -1808,6 +1866,7 @@ function completeLogin(name, username) {
     localStorage.setItem('mobileUser', JSON.stringify(userObj));
     window.currentUser = userObj;
     checkUserSession();
+    startCloudSync(); // Arrancar sincronización al iniciar sesión
 }
 
 window.handleLogout = function() {
@@ -1815,6 +1874,8 @@ window.handleLogout = function() {
         // 1. Limpiar sesión
         localStorage.removeItem('mobileUser');
         window.currentUser = null;
+        
+        stopCloudSync(); // Detener todos los listeners activos de Firestore
         
         // 2. Cerrar menús/modales abiertos
         if (typeof closeUserMenu === 'function') closeUserMenu();
@@ -1899,29 +1960,28 @@ function checkUserSession() {
 }
 
 /** ── FAVORITOS DE CANCIONES (REAL-TIME) ── */
-let songFavorites = [];
+let songFavorites = JSON.parse(localStorage.getItem('mobileSongFavorites')) || [];
 function initSongFavoritesListener() {
     console.log("[Mobile] Cargando favoritos de canciones...");
     
-    db.collection('cantos_favoritos').doc('master').onSnapshot(doc => {
+    return db.collection('cantos_favoritos').doc('master').onSnapshot(doc => {
         if (doc.exists) {
             songFavorites = doc.data().lista || [];
+            localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
             console.log(`[Mobile] Favoritos actualizados: ${songFavorites.length} canciones.`);
             renderSongFavorites();
         } else {
             songFavorites = [];
+            localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
             console.warn("[Mobile] El documento de favoritos no existe en la nube.");
             renderSongFavorites();
         }
     }, err => {
         console.error("[Mobile] Error cargando favoritos:", err);
         const list = document.getElementById('favoritosCantosList');
-        if(list) list.innerHTML = '<div class="error-state">Reconectando con favoritos...</div>';
-        
-        // Reintentar en 3 segundos
-        setTimeout(() => {
-            initSongFavoritesListener();
-        }, 3000);
+        if (list && songFavorites.length === 0) {
+            list.innerHTML = '<div class="error-state">Reconectando con favoritos...</div>';
+        }
     });
 
     const searchInput = document.getElementById('favSearch');
