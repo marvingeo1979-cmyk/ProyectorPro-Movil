@@ -1981,6 +1981,7 @@ function initSongFavoritesListener() {
         const list = document.getElementById('favoritosCantosList');
         if (list && songFavorites.length === 0) {
             list.innerHTML = '<div class="error-state">Reconectando con favoritos...</div>';
+        }
     });
 }
 
