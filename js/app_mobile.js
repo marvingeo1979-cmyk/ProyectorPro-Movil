@@ -358,7 +358,7 @@ function initCloudListeners() {
         }
     });
 
-    db.collection('biblioteca_cantos').doc('master').onSnapshot(async doc => {
+    const unsubSongs = db.collection('biblioteca_cantos').doc('master').onSnapshot(async doc => {
         if (!doc.exists) return;
         
         const data = doc.data();
@@ -1981,13 +1981,7 @@ function initSongFavoritesListener() {
         const list = document.getElementById('favoritosCantosList');
         if (list && songFavorites.length === 0) {
             list.innerHTML = '<div class="error-state">Reconectando con favoritos...</div>';
-        }
     });
-
-    const searchInput = document.getElementById('favSearch');
-    if (searchInput) {
-        searchInput.oninput = (e) => renderSongFavorites(e.target.value.toLowerCase());
-    }
 }
 
 function renderSongFavorites(filter = "") {
