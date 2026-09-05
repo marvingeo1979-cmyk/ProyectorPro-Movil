@@ -50,6 +50,7 @@ window.cloudSongs = JSON.parse(localStorage.getItem('mobileCloudSongs')) || [];
 window.cloudAnnouncements = JSON.parse(localStorage.getItem('mobileCloudAnn')) || [];
 window.verseHistory = JSON.parse(localStorage.getItem('mobileVerseHistory')) || [];
 window.pendingDeletions = JSON.parse(localStorage.getItem('mobilePendingDeletions')) || [];
+window.pendingCreates = JSON.parse(localStorage.getItem('mobilePendingCreates')) || [];
 window.lastLibraryUpdate = parseInt(localStorage.getItem('mobileLastSync')) || 0;
 window.songKeywords = JSON.parse(localStorage.getItem('mobileSongKeywords')) || [
   { key: 'CORO', type: 'chorus' },
@@ -445,62 +446,56 @@ function initCloudListeners() {
 
     const unsubAnn = db.collection('biblioteca_anuncios').doc('master').onSnapshot(doc => {
         if (doc.exists) {
-            // Protección contra reversión: Cooldown de seguridad
-            const cooldown = 20000; // 20 segundos
-            const diff = Date.now() - window.lastLibraryUpdate;
-            if (diff < cooldown) {
-                console.log(`[Sync] Cooldown activo (${Math.round((cooldown - diff)/1000)}s). Ignorando para evitar sobrescribir cambios locales.`);
-                return;
-            }
-
             const cloudRaw = doc.data().lista || [];
-            
-            // Limpiar pendientes de eliminación si ya no existen en la nube
-            if (window.pendingDeletions && window.pendingDeletions.length > 0) {
-                const stillInCloud = window.pendingDeletions.filter(id => cloudRaw.find(a => String(a.id) === String(id)));
+            if (!window.pendingDeletions) window.pendingDeletions = [];
+            if (!window.pendingCreates) window.pendingCreates = [];
+
+            // 1. Limpiar pendientes de eliminación si ya no existen en la nube (confirmación del borrado)
+            if (window.pendingDeletions.length > 0) {
+                const stillInCloud = window.pendingDeletions.filter(id => cloudRaw.some(a => String(a.id) === String(id)));
                 if (stillInCloud.length !== window.pendingDeletions.length) {
                     window.pendingDeletions = stillInCloud;
                     localStorage.setItem('mobilePendingDeletions', JSON.stringify(window.pendingDeletions));
                 }
             }
 
-            // Filtrar lista de la nube con los que acabamos de borrar localmente
-            const cloudList = cloudRaw.filter(a => !window.pendingDeletions.includes(String(a.id)));
-            let changed = false;
-
-            // Fusión inteligente: No dejar que datos viejos de la nube pisen ediciones locales recientes
-            const mergedList = cloudList.map(cloudItem => {
-                const localItem = window.cloudAnnouncements.find(a => String(a.id) === String(cloudItem.id));
-                if (localItem && (localItem.updatedAt || 0) > (cloudItem.updatedAt || 0)) {
-                    // La versión local es más reciente que la de la nube
-                    return localItem;
+            // 2. Limpiar pendientes de creación si ya están presentes en la nube (confirmación de creación)
+            if (window.pendingCreates.length > 0) {
+                const notYetInCloud = window.pendingCreates.filter(id => !cloudRaw.some(a => String(a.id) === String(id)));
+                if (notYetInCloud.length !== window.pendingCreates.length) {
+                    window.pendingCreates = notYetInCloud;
+                    localStorage.setItem('mobilePendingCreates', JSON.stringify(window.pendingCreates));
                 }
-                if (localItem) {
-                    // Si los datos son distintos, marcamos que cambió la UI
-                    if (JSON.stringify(localItem) !== JSON.stringify(cloudItem)) changed = true;
-                } else {
-                    changed = true;
+            }
+
+            // 3. Filtrar de la nube aquellos que marcamos localmente para eliminar
+            const cloudList = cloudRaw.filter(a => !window.pendingDeletions.includes(String(a.id)));
+
+            // 4. Mapear elementos de la nube resolviendo por updatedAt
+            const mergedList = cloudList.map(cloudItem => {
+                const localItem = (window.cloudAnnouncements || []).find(a => String(a.id) === String(cloudItem.id));
+                if (localItem && (localItem.updatedAt || 0) > (cloudItem.updatedAt || 0)) {
+                    // La versión local es una edición más reciente que aún no refleja la nube
+                    return localItem;
                 }
                 return cloudItem;
             });
 
-            // Añadir los que están locales pero no en la nube todavía (vía petición pendiente)
-            window.cloudAnnouncements.forEach(localItem => {
-                // No re-añadir si está marcado para borrar
-                if (window.pendingDeletions.includes(String(localItem.id))) return;
+            // 5. Añadir ÚNICAMENTE los elementos locales que están en pendingCreates
+            // (Si no están en pendingCreates y no vienen en cloudList, fueron borrados en la PC: NO RESUCITARLOS)
+            (window.cloudAnnouncements || []).forEach(localItem => {
+                const idStr = String(localItem.id);
+                if (window.pendingDeletions.includes(idStr)) return;
 
-                if (!mergedList.find(a => String(a.id) === String(localItem.id))) {
+                if (window.pendingCreates.includes(idStr) && !mergedList.some(a => String(a.id) === idStr)) {
                     mergedList.push(localItem);
-                    changed = true;
                 }
             });
 
-            if (changed || diff >= cooldown) {
-                console.log("[Sync] Biblioteca sincronizada (Con fusiones inteligentes)");
-                window.cloudAnnouncements = mergedList;
-                localStorage.setItem('mobileCloudAnn', JSON.stringify(window.cloudAnnouncements));
-                renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
-            }
+            console.log("[Sync] Biblioteca de anuncios sincronizada en tiempo real.");
+            window.cloudAnnouncements = mergedList;
+            localStorage.setItem('mobileCloudAnn', JSON.stringify(window.cloudAnnouncements));
+            renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
         }
     });
 
@@ -1139,26 +1134,31 @@ function cancelAnnEdit() {
 
 function deleteAnnouncement(id) {
     showConfirm("¿Deseas eliminar este anuncio definitivamente de la biblioteca?", () => {
-        // 1. Enviar petición a Firestore (para que la PC lo borre)
+        const idStr = String(id);
+        // 1. Enviar petición a Firestore (para que la PC lo borre y persista)
         db.collection('peticiones_libreria').add({
             type: 'DELETE_ANN',
-            id: id,
+            id: idStr,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         // 2. Optimización local inmediata: Agregar a lista negra temporal
         if (!window.pendingDeletions) window.pendingDeletions = [];
-        window.pendingDeletions.push(String(id));
-        localStorage.setItem('mobilePendingDeletions', JSON.stringify(window.pendingDeletions));
+        if (!window.pendingDeletions.includes(idStr)) {
+            window.pendingDeletions.push(idStr);
+            localStorage.setItem('mobilePendingDeletions', JSON.stringify(window.pendingDeletions));
+        }
 
-        // 3. Remover de la memoria local y guardar
-        window.cloudAnnouncements = window.cloudAnnouncements.filter(a => String(a.id) !== String(id));
+        // 3. Quitar de pendingCreates si estaba ahí
+        if (window.pendingCreates) {
+            window.pendingCreates = window.pendingCreates.filter(cid => String(cid) !== idStr);
+            localStorage.setItem('mobilePendingCreates', JSON.stringify(window.pendingCreates));
+        }
+
+        // 4. Remover de la memoria local y guardar
+        window.cloudAnnouncements = (window.cloudAnnouncements || []).filter(a => String(a.id) !== idStr);
         localStorage.setItem('mobileCloudAnn', JSON.stringify(window.cloudAnnouncements));
-        
-        // 4. Activar cooldown de seguridad para ignorar el próximo snapshot de rebote
-        window.lastLibraryUpdate = Date.now();
-        localStorage.setItem('mobileLastSync', window.lastLibraryUpdate);
-        
+
         // 5. Refrescar UI inmediatamente
         renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
 
@@ -1558,10 +1558,18 @@ async function handleManualAnnSend() {
         window.cloudAnnouncements[idx] = { ...window.cloudAnnouncements[idx], ...item };
     } else {
         window.cloudAnnouncements.push(item);
+        if (!window.pendingCreates) window.pendingCreates = [];
+        if (!window.pendingCreates.includes(String(item.id))) {
+            window.pendingCreates.push(String(item.id));
+            localStorage.setItem('mobilePendingCreates', JSON.stringify(window.pendingCreates));
+        }
     }
     
-    window.lastLibraryUpdate = Date.now();
-    localStorage.setItem('mobileLastSync', window.lastLibraryUpdate);
+    if (window.pendingDeletions) {
+        window.pendingDeletions = window.pendingDeletions.filter(did => String(did) !== String(item.id));
+        localStorage.setItem('mobilePendingDeletions', JSON.stringify(window.pendingDeletions));
+    }
+
     localStorage.setItem('mobileCloudAnn', JSON.stringify(window.cloudAnnouncements));
     renderCloudLibrary(window.cloudAnnouncements, 'anuncios', 'announcementListCloud');
 
