@@ -1054,17 +1054,26 @@ function renderCloudLibrary(lista, type, containerId) {
         const title = item.titulo || item.title || "(Sin título)";
         const text = item.texto || item.content || "";
         const id = String(item.id);
-        const hasImg = item.img ? `<i class="fa-solid fa-image" style="color:var(--ocher-light); margin-left:8px; font-size:0.8rem;"></i>` : "";
+        const rawThumb = item.thumb || item.img || item.background || "";
+        const hasValidThumb = rawThumb && !rawThumb.startsWith('blob:');
+        const isVideo = item.bgType === 'video' || (item.bgName && item.bgName.match(/\.(mp4|webm|mkv|mov)$/i));
+        const hasMedia = hasValidThumb || item.bgName || (item.bgType && item.bgType !== 'none');
+        
+        const mediaBadge = hasMedia ? `<i class="fa-solid ${isVideo ? 'fa-film' : 'fa-image'}" style="color:var(--ocher-light); margin-left:6px; font-size:0.75rem;" title="Con fondo multimedia"></i>` : "";
         
         // Escapar JSON para los atributos onclick
         const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
 
+        const thumbIcon = hasValidThumb
+            ? `<img src="${rawThumb}" style="width:36px; height:24px; object-fit:cover; border-radius:4px; border:1px solid rgba(212,175,55,0.4); flex-shrink:0;" />`
+            : `<i class="fa-solid fa-bullhorn"></i>`;
+
         const el = document.createElement('div');
         el.className = 'mobile-list-item';
         el.innerHTML = `
-            <i class="fa-solid fa-bullhorn"></i>
+            ${thumbIcon}
             <div class="item-info">
-                <div class="item-title">${title} ${hasImg}</div>
+                <div class="item-title">${title} ${mediaBadge}</div>
             </div>
             <div style="display:flex; gap:12px; align-items:center;">
                 <i class="fa-solid fa-eye" style="opacity:0.3; font-size:1.1rem;" onclick="event.stopPropagation(); showPreviewAnn(${itemJson})"></i>
@@ -1073,8 +1082,6 @@ function renderCloudLibrary(lista, type, containerId) {
             </div>
         `;
         el.onclick = () => {
-            // Quitar el proceso de añadir directo al presionar el anuncio
-            // Ahora la única forma de añadir es con el botón + o desde el preview
             showPreviewAnn(item);
         };
         container.appendChild(el);
@@ -1173,16 +1180,34 @@ function showPreviewAnn(ann) {
     const lyricsEl = document.getElementById('previewLyrics');
     
     let content = ann.texto || "Sin contenido de texto.";
-    let imgInfo = "";
-    if (ann.img) {
-        imgInfo = `<div style="margin-bottom:15px; padding:8px; background:rgba(212,175,55,0.1); border-radius:8px; font-size:0.8rem; color:var(--ocher-light);">
-            <i class="fa-solid fa-image"></i> IMAGEN DE FONDO: <strong>${ann.img}</strong>
-        </div>`;
-    }
     
+    // Identificar imagen o miniatura válida (evitar URLs blob locales de PC)
+    const rawImg = ann.thumb || ann.img || ann.background || "";
+    const validBgImg = (rawImg && !rawImg.startsWith('blob:')) ? rawImg : null;
+
+    // Badge elegante de medio (si tiene nombre o tipo, SIN mostrar URLs de código feas)
+    let badgeHtml = "";
+    if (ann.bgName || (ann.bgType && ann.bgType !== 'none')) {
+        const isVideo = ann.bgType === 'video' || (ann.bgName && ann.bgName.match(/\.(mp4|webm|mkv|mov)$/i));
+        const iconClass = isVideo ? 'fa-film' : 'fa-image';
+        const labelText = ann.bgName ? ann.bgName : (isVideo ? 'Video de fondo' : 'Imagen de fondo');
+        
+        badgeHtml = `
+            <div style="display:inline-flex; align-items:center; gap:7px; padding:5px 14px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.3); border-radius:20px; font-size:0.75rem; color:var(--ocher-light); margin-bottom:14px;">
+                <i class="fa-solid ${iconClass}"></i>
+                <span>Fondo: <strong>${labelText}</strong></span>
+            </div>
+        `;
+    }
+
+    // Estilo de la tarjeta: si hay fondo válido, aplicarlo con overlay oscuro para contraste perfecto
+    const cardBgStyle = validBgImg 
+        ? `background: linear-gradient(rgba(14, 13, 18, 0.75), rgba(10, 9, 14, 0.88)), url('${validBgImg}') center/cover no-repeat; border: 1px solid rgba(212,175,55,0.35); box-shadow: 0 4px 18px rgba(0,0,0,0.6);`
+        : `background: rgba(255,255,255,0.05); border-left: 4px solid var(--ocher-base);`;
+
     lyricsEl.innerHTML = `
-        ${imgInfo}
-        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border-left: 4px solid var(--ocher-base); white-space: pre-wrap;">
+        ${badgeHtml}
+        <div style="${cardBgStyle} padding: 18px; border-radius: 12px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">
             ${content}
         </div>
     `;
