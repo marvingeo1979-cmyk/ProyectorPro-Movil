@@ -476,7 +476,14 @@ function initCloudListeners() {
                 const localItem = (window.cloudAnnouncements || []).find(a => String(a.id) === String(cloudItem.id));
                 if (localItem && (localItem.updatedAt || 0) > (cloudItem.updatedAt || 0)) {
                     // La versión local es una edición más reciente que aún no refleja la nube
-                    return localItem;
+                    return {
+                        ...cloudItem,
+                        ...localItem,
+                        thumb: localItem.thumb || cloudItem.thumb || "",
+                        img: localItem.img || cloudItem.img || "",
+                        bgName: localItem.bgName || cloudItem.bgName || "",
+                        bgType: localItem.bgType || cloudItem.bgType || ""
+                    };
                 }
                 return cloudItem;
             });
@@ -1202,7 +1209,7 @@ function showPreviewAnn(ann) {
 
     // Estilo de la tarjeta: si hay fondo válido, aplicarlo con overlay oscuro para contraste perfecto
     const cardBgStyle = validBgImg 
-        ? `background: linear-gradient(rgba(14, 13, 18, 0.75), rgba(10, 9, 14, 0.88)), url('${validBgImg}') center/cover no-repeat; border: 1px solid rgba(212,175,55,0.35); box-shadow: 0 4px 18px rgba(0,0,0,0.6);`
+        ? `background-color: #14141c; background-image: linear-gradient(rgba(14, 13, 18, 0.72), rgba(10, 9, 14, 0.86)), url('${validBgImg}'); background-size: cover; background-position: center; background-repeat: no-repeat; border: 1px solid rgba(212,175,55,0.35); box-shadow: 0 4px 18px rgba(0,0,0,0.6);`
         : `background: rgba(255,255,255,0.05); border-left: 4px solid var(--ocher-base);`;
 
     lyricsEl.innerHTML = `
