@@ -336,6 +336,9 @@ function startCloudSync() {
     
     const unsubFavs = initSongFavoritesListener();
     if (unsubFavs) cloudUnsubscribeFunctions.push(unsubFavs);
+
+    const unsubHistory = initVerseHistoryListener();
+    if (unsubHistory) cloudUnsubscribeFunctions.push(unsubHistory);
 }
 
 function stopCloudSync() {
@@ -1526,7 +1529,7 @@ async function handleGlobalSend() {
         }));
         
         window.verseHistory = [...newHistoryEntries, ...window.verseHistory].slice(0, 50); // Límite de 50
-        localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+        saveAndSyncVerseHistory();
     }
     // ------------------------------------
 
@@ -2422,8 +2425,7 @@ window.removeSingleVerseHistory = function(idx) {
     const cita = (entry.data && entry.data.cita) || "este versículo";
     showConfirm(`¿Quitar "${cita}" del historial de lectura?`, () => {
         window.verseHistory.splice(idx, 1);
-        localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
-        renderVerseHistory();
+        saveAndSyncVerseHistory();
         showNotification("Versículo quitado del historial", "success");
     });
 };
@@ -2437,8 +2439,7 @@ function clearVerseHistory() {
     if (isAdmin) {
         showConfirm("¿Deseas vaciar el historial de versículos de esta sesión?", () => {
             window.verseHistory = [];
-            localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
-            renderVerseHistory();
+            saveAndSyncVerseHistory();
             showNotification("Historial limpiado.");
         });
     } else {
@@ -2450,11 +2451,86 @@ function clearVerseHistory() {
         }
         showConfirm(`¿Deseas quitar tus ${myVerses.length} versículos del historial de lectura?`, () => {
             window.verseHistory = window.verseHistory.filter(v => (v.addedBy || "").toLowerCase() !== myUser);
-            localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
-            renderVerseHistory();
+            saveAndSyncVerseHistory();
             showNotification("Tus versículos fueron quitados del historial.");
         });
     }
+}
+
+function saveAndSyncVerseHistory() {
+    localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+    renderVerseHistory();
+    if (typeof db === 'undefined' || !db) return;
+
+    const payload = (window.verseHistory || []).map(entry => {
+        const item = entry.data || entry;
+        return {
+            cita: item.cita || item.ref || "",
+            texto: item.texto || item.text || "",
+            addedBy: entry.addedBy || item.addedBy || window.currentUser?.username || "movil",
+            time: entry.time || "",
+            obs: entry.obs || item.obs || "",
+            bookName: item.libro || item.bookName || "",
+            chapter: item.capitulo || item.chapter || 0,
+            verse: item.versiculo || item.verse || 0,
+            version: item.version || ""
+        };
+    });
+
+    db.collection('historial_versiculos').doc('master').set({
+        lista: payload,
+        updatedBy: window.currentUser?.username || 'movil',
+        updated: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        console.log("[Mobile] Historial de versículos sincronizado con Firebase.");
+    }).catch(err => {
+        console.error("[Mobile] Error sincronizando historial de versículos:", err);
+    });
+}
+
+function initVerseHistoryListener() {
+    console.log("[Mobile] Cargando historial de versículos desde la nube...");
+    let isHistFirstLoad = true;
+    return db.collection('historial_versiculos').doc('master').onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const cloudSender = (data.updatedBy || "").toLowerCase();
+            const myUser = (window.currentUser?.username || window.currentUser?.name || "movil").toLowerCase();
+
+            // Si el cambio lo originó este mismo móvil en esta sesión, no re-mapear innecesariamente
+            if (cloudSender === myUser && !isHistFirstLoad) {
+                isHistFirstLoad = false;
+                return;
+            }
+            isHistFirstLoad = false;
+
+            const cloudList = data.lista || [];
+            window.verseHistory = cloudList.map(item => ({
+                time: item.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                addedBy: item.addedBy || 'Desconocido',
+                obs: item.obs || "",
+                data: {
+                    cita: item.cita || item.ref || "",
+                    texto: item.texto || item.text || "",
+                    version: item.version || "",
+                    libro: item.bookName || item.libro || "",
+                    capitulo: item.chapter || item.capitulo || 0,
+                    versiculo: item.verse || item.versiculo || 0
+                }
+            }));
+            localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+            console.log(`[Mobile] Historial de versículos actualizado desde la nube: ${window.verseHistory.length} registros.`);
+            renderVerseHistory();
+        } else {
+            isHistFirstLoad = false;
+            // Si la nube aún no tiene documento de historial pero el móvil sí tiene datos locales, sincronizar inicial
+            if (window.verseHistory && window.verseHistory.length > 0) {
+                saveAndSyncVerseHistory();
+            }
+        }
+    }, err => {
+        console.error("[Mobile] Error escuchando historial de versículos:", err);
+    });
 }
 
 function reAddFromHistory(idx) {
