@@ -1521,7 +1521,8 @@ async function handleGlobalSend() {
         const newHistoryEntries = window.cart.bible.map(entry => ({
             ...entry,
             time: timeStr,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            addedBy: myUser
         }));
         
         window.verseHistory = [...newHistoryEntries, ...window.verseHistory].slice(0, 50); // Límite de 50
@@ -2356,6 +2357,14 @@ window.closePreview = function() {
     else document.getElementById('modalPreview').classList.add('hidden');
 };
 
+function canUserManageVerse(entry) {
+    if (!window.currentUser) return false;
+    if (isCurrentUserAdmin()) return true;
+    const myUser = (window.currentUser.username || window.currentUser.name || "").toLowerCase();
+    const owner = (entry.addedBy || "").toLowerCase();
+    return Boolean(owner && owner === myUser);
+}
+
 /** ── HISTORIAL DE VERSÍCULOS ── */
 function renderVerseHistory() {
     const container = document.getElementById('verseHistoryList');
@@ -2368,20 +2377,34 @@ function renderVerseHistory() {
 
     container.innerHTML = '';
     window.verseHistory.forEach((entry, idx) => {
-        const item = entry.data;
+        const item = entry.data || entry;
+        const canManage = canUserManageVerse(entry);
+        const ownerName = entry.addedBy || 'Desconocido';
         const el = document.createElement('div');
         el.className = 'cloud-card'; // Reutilizar estilos de notas
         el.style = "margin-bottom: 10px; padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.04); border-left: 4px solid var(--ocher-base); box-shadow: 0 2px 8px rgba(0,0,0,0.2);";
         
         el.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom: 8px; opacity:0.6; font-size:0.7rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; font-size:0.75rem;">
                 <span style="color:var(--ocher-base); font-weight:800; text-transform:uppercase;">${item.cita}</span>
-                <span><i class="fa-regular fa-clock"></i> ${entry.time || '--:--'}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    ${!canManage ? `
+                        <span class="song-owner-tag" style="margin:0; font-size:0.65rem;" title="Enviado por ${ownerName}">
+                            <i class="fa-solid fa-user-lock" style="font-size:0.6rem;"></i> ${ownerName}
+                        </span>
+                    ` : ''}
+                    <span style="opacity:0.6; font-size:0.7rem;"><i class="fa-regular fa-clock"></i> ${entry.time || '--:--'}</span>
+                </div>
             </div>
             <div style="font-size:1.05rem; line-height:1.5; color:#fff; white-space: pre-wrap;">${item.texto}</div>
             ${entry.obs ? `<div style="font-size:0.75rem; color:var(--ocher-light); margin-top:8px; font-style:italic; opacity:0.7; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;">Obs: ${entry.obs}</div>` : ''}
-            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
-                <button onclick="reAddFromHistory(${idx})" style="background:var(--wine-accent); color:white; border:1px solid var(--ocher-base); border-radius:6px; padding:4px 10px; font-size:0.7rem; font-weight:700;">
+            <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:12px;">
+                ${canManage ? `
+                    <button onclick="removeSingleVerseHistory(${idx})" class="btn-fav-item-action fav-action-delete" title="Eliminar de historial" style="width:auto; padding:5px 10px; height:32px; gap:5px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; font-size:0.72rem; border-radius:6px; font-weight:700; cursor:pointer;">
+                        <i class="fa-solid fa-trash-can"></i> ELIMINAR
+                    </button>
+                ` : ''}
+                <button onclick="reAddFromHistory(${idx})" style="background:var(--wine-accent); color:white; border:1px solid var(--ocher-base); border-radius:6px; padding:5px 12px; height:32px; font-size:0.72rem; font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;">
                     <i class="fa-solid fa-plus"></i> RE-ENVIAR
                 </button>
             </div>
@@ -2390,13 +2413,48 @@ function renderVerseHistory() {
     });
 }
 
-function clearVerseHistory() {
-    showConfirm("¿Deseas vaciar el historial de versículos de esta sesión?", () => {
-        window.verseHistory = [];
+window.removeSingleVerseHistory = function(idx) {
+    const entry = window.verseHistory[idx];
+    if (!entry || !canUserManageVerse(entry)) {
+        showNotification("Solo el autor de este versículo o un admin puede eliminarlo", "warning");
+        return;
+    }
+    const cita = (entry.data && entry.data.cita) || "este versículo";
+    showConfirm(`¿Quitar "${cita}" del historial de lectura?`, () => {
+        window.verseHistory.splice(idx, 1);
         localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
         renderVerseHistory();
-        showNotification("Historial limpiado.");
+        showNotification("Versículo quitado del historial", "success");
     });
+};
+
+function clearVerseHistory() {
+    if (!window.verseHistory || window.verseHistory.length === 0) {
+        showNotification("No hay versículos en el historial", "info");
+        return;
+    }
+    const isAdmin = isCurrentUserAdmin();
+    if (isAdmin) {
+        showConfirm("¿Deseas vaciar el historial de versículos de esta sesión?", () => {
+            window.verseHistory = [];
+            localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+            renderVerseHistory();
+            showNotification("Historial limpiado.");
+        });
+    } else {
+        const myUser = (window.currentUser?.username || window.currentUser?.name || "").toLowerCase();
+        const myVerses = window.verseHistory.filter(v => (v.addedBy || "").toLowerCase() === myUser);
+        if (myVerses.length === 0) {
+            showNotification("No tienes versículos enviados por ti en el historial", "info");
+            return;
+        }
+        showConfirm(`¿Deseas quitar tus ${myVerses.length} versículos del historial de lectura?`, () => {
+            window.verseHistory = window.verseHistory.filter(v => (v.addedBy || "").toLowerCase() !== myUser);
+            localStorage.setItem('mobileVerseHistory', JSON.stringify(window.verseHistory));
+            renderVerseHistory();
+            showNotification("Tus versículos fueron quitados del historial.");
+        });
+    }
 }
 
 function reAddFromHistory(idx) {
