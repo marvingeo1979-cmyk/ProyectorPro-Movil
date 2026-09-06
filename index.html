@@ -247,11 +247,33 @@
 
                 <!-- Panel Nuevo: Favoritos de Canciones -->
                 <div class="panel" data-id="favoritosCantos">
-                    <div class="panel-header-mini">
-                        <h2>Canciones Favoritas</h2>
-                        <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Repertorio seleccionado
-                            desde la PC</p>
+                    <div class="panel-header-mini" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                        <div>
+                            <h2>Canciones Favoritas</h2>
+                            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Repertorio en vivo sincronizado con PC</p>
+                        </div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button id="btnToggleFavSelect" class="btn-fav-head-action" title="Seleccionar varias">
+                                <i class="fa-solid fa-list-check"></i>
+                            </button>
+                            <button id="btnClrFavsMobile" class="btn-fav-head-action btn-fav-danger" title="Vaciar favoritos">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
+
+                    <!-- Barra de selección múltiple (oculta por defecto) -->
+                    <div id="favSelectionBar" class="fav-selection-bar hidden">
+                        <span id="favSelectedCount" class="fav-selection-text">0 seleccionadas</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button id="btnSelectAllFavs" class="btn-fav-subaction">Todos</button>
+                            <button id="btnDeleteSelectedFavs" class="btn-fav-subaction btn-fav-subaction-danger" disabled>
+                                <i class="fa-solid fa-trash-can"></i> Borrar
+                            </button>
+                            <button id="btnCancelFavSelect" class="btn-fav-subaction">✕</button>
+                        </div>
+                    </div>
+
                     <div class="search-wrap-mobile">
                         <i class="fa-solid fa-magnifying-glass search-icon-overlay"></i>
                         <input type="text" id="favSearch" placeholder="Buscar en favoritos..." class="mobile-input">

@@ -36,9 +36,12 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// ðŸ›’ ESTADO GLOBAL
+// 🛒 ESTADO GLOBAL
 window.cart = JSON.parse(localStorage.getItem('mobileCart')) || { bible: [], songs: [] };
 window.currentUser = JSON.parse(localStorage.getItem('mobileUser')) || null;
+if (window.currentUser && !window.currentUser.role) {
+    window.currentUser.role = (window.currentUser.username === 'admin') ? 'admin' : 'user';
+}
 window.bibleState = { 
     view: 'versions', 
     version: null,
@@ -1493,8 +1496,17 @@ async function handleGlobalSend() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ENVIANDO...';
 
+    const myUser = window.currentUser?.username || window.currentUser?.name || "lider";
+    if (window.cart.songs && window.cart.songs.length > 0) {
+        window.cart.songs.forEach(s => {
+            if (s.data && typeof s.data === 'object') s.data.addedBy = myUser;
+            s.addedBy = myUser;
+        });
+    }
+
     const messageData = {
-        sender: window.currentUser?.name || "LÃ­der MÃ³vil",
+        sender: window.currentUser?.name || "Líder Móvil",
+        senderUsername: myUser,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         bible: window.cart.bible,
         songs: window.cart.songs,
@@ -1866,32 +1878,32 @@ window.handleLogin = async function() {
                     setTimeout(() => err.style.display = 'none', 5000);
                     return;
                 }
-                // Pasar tanto el alias como el mismo como nombre si no hay otro
-                completeLogin(found.u, found.u);
+                // Pasar tanto el alias como el mismo como nombre y su rol
+                completeLogin(found.u, found.u, found.role);
                 return;
             }
         } else {
             // El documento no existe en la nube
             if (uInput.toLowerCase() === 'admin' && pInput === '123') {
-                 completeLogin('Administrador', 'admin');
+                 completeLogin('Administrador', 'admin', 'admin');
                  return;
             }
         }
         
-        // Si llegamos aquÃ­ y no hay error de red, es que las credenciales son malas
-        throw new Error("Credenciales invÃ¡lidas");
+        // Si llegamos aquí y no hay error de red, es que las credenciales son malas
+        throw new Error("Credenciales inválidas");
 
     } catch (e) {
         console.warn("[Login] Fallo online, intentando offline...", e.message);
         
-        // 2. Validar OFFLINE contra cachÃ© local
+        // 2. Validar OFFLINE contra caché local
         const foundLocal = cachedUsers.find(x => x.u.toLowerCase() === uInput.toLowerCase() && x.p === pInput);
         
         if (foundLocal) {
             showNotification("Modo Offline: Acceso concedido.", "success");
-            completeLogin(foundLocal.u, foundLocal.u);
+            completeLogin(foundLocal.u, foundLocal.u, foundLocal.role);
         } else {
-            err.textContent = (e.message === "Credenciales invÃ¡lidas") ? "Usuario o clave incorrectos." : "Sin conexiÃ³n y usuario no reconocido localmente.";
+            err.textContent = (e.message === "Credenciales inválidas") ? "Usuario o clave incorrectos." : "Sin conexión y usuario no reconocido localmente.";
             err.style.display = 'block';
             setTimeout(() => err.style.display = 'none', 5000);
         }
@@ -1901,8 +1913,10 @@ window.handleLogin = async function() {
     }
 };
 
-function completeLogin(name, username) {
-    const userObj = { name, username: (username || name).toLowerCase(), loggedAt: Date.now() };
+function completeLogin(name, username, role) {
+    const uLow = (username || name).toLowerCase();
+    const finalRole = role || (uLow === 'admin' ? 'admin' : 'user');
+    const userObj = { name, username: uLow, role: finalRole, loggedAt: Date.now() };
     localStorage.setItem('mobileUser', JSON.stringify(userObj));
     window.currentUser = userObj;
     checkUserSession();
@@ -1999,10 +2013,28 @@ function checkUserSession() {
     }
 }
 
-/** ── FAVORITOS DE CANCIONES (REAL-TIME) ── */
+/** ── FAVORITOS DE CANCIONES (REAL-TIME CON ACCIONES Y PERMISOS) ── */
 let songFavorites = JSON.parse(localStorage.getItem('mobileSongFavorites')) || [];
+let isFavSelectMode = false;
+let selectedFavIndices = new Set();
+
+function isCurrentUserAdmin() {
+    if (!window.currentUser) return false;
+    const u = (window.currentUser.username || window.currentUser.name || "").toLowerCase();
+    return u === 'admin' || window.currentUser.role === 'admin';
+}
+
+function canUserManageSong(song) {
+    if (!window.currentUser) return false;
+    if (isCurrentUserAdmin()) return true;
+    const myUser = (window.currentUser.username || window.currentUser.name || "").toLowerCase();
+    const owner = (song.addedBy || "").toLowerCase();
+    return Boolean(owner && owner === myUser);
+}
+
 function initSongFavoritesListener() {
     console.log("[Mobile] Cargando favoritos de canciones...");
+    initFavActionButtons();
     
     return db.collection('cantos_favoritos').doc('master').onSnapshot(doc => {
         if (doc.exists) {
@@ -2031,43 +2063,267 @@ function renderSongFavorites(filter = "") {
 
     if (songFavorites.length === 0) {
         list.innerHTML = '<div class="empty-state">No hay canciones en favoritos aún.</div>';
+        updateFavSelectionUI();
         return;
     }
 
     const normalizedFilter = (filter || "").toLowerCase().trim();
 
-    const filtered = songFavorites.filter(s => {
+    const filtered = songFavorites.map((s, idx) => ({ song: s, originalIdx: idx })).filter(item => {
+        const s = item.song;
         const title = normalizeText(s.titulo || s.title || "");
         const tono = normalizeText(s.tono || "");
         const lyrics = normalizeText(s.letra || s.lyrics || "");
-        const q = normalizedFilter; // normalizedFilter ya es lowecase y trim
-        return title.includes(q) || tono.includes(q) || lyrics.includes(q);
+        return title.includes(normalizedFilter) || tono.includes(normalizedFilter) || lyrics.includes(normalizedFilter);
     });
 
     if (filtered.length === 0) {
         list.innerHTML = '<div class="empty-state">No se encontraron resultados en favoritos.</div>';
+        updateFavSelectionUI();
         return;
     }
 
     let html = '';
-    filtered.forEach((s) => {
+    filtered.forEach((item) => {
+        const s = item.song;
+        const originalIdx = item.originalIdx;
         const sTitle = s.titulo || s.title || "Sin título";
-        const sLyrics = s.letra || s.lyrics || "";
-        // Encontrar el índice REAL en la lista original
-        const originalIdx = songFavorites.findIndex(fav => (fav.titulo === sTitle || fav.title === sTitle) && (fav.letra === sLyrics || fav.lyrics === sLyrics));
-        
+        const canManage = canUserManageSong(s);
+        const isFirst = originalIdx === 0;
+        const isLast = originalIdx === songFavorites.length - 1;
+        const isChecked = selectedFavIndices.has(originalIdx);
+        const ownerName = s.addedBy || 'PC';
+
         html += `
-            <div class="cloud-song-item" onclick="showFavoriteLyrics(${originalIdx})">
-                <div style="flex:1;">
-                    <div class="song-name-main">${sTitle}</div>
-                    ${s.tono ? `<div style="font-size:0.75rem; color:var(--ocher-light); margin-top:2px;">Tono: ${s.tono}</div>` : ''}
+            <div class="cloud-song-item" onclick="handleFavItemClick(event, ${originalIdx})">
+                ${isFavSelectMode ? `
+                    <input type="checkbox" class="fav-checkbox" 
+                        ${canManage ? '' : 'disabled title="Solo el autor o admin puede seleccionarla"'} 
+                        ${isChecked ? 'checked' : ''} 
+                        onclick="event.stopPropagation(); toggleFavSelect(${originalIdx});">
+                ` : ''}
+
+                <div style="flex:1; min-width:0; padding-right:8px;">
+                    <div class="song-name-main" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sTitle}</div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
+                        ${s.tono ? `<span style="font-size:0.75rem; color:var(--ocher-light);">Tono: ${s.tono}</span>` : ''}
+                        ${!canManage ? `
+                            <span class="song-owner-tag" title="Enviado por ${ownerName}">
+                                <i class="fa-solid fa-user-lock" style="font-size:0.65rem;"></i> ${ownerName}
+                            </span>
+                        ` : ''}
+                    </div>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem;"></i>
+
+                ${!isFavSelectMode ? (canManage ? `
+                    <div class="fav-item-actions" onclick="event.stopPropagation();">
+                        <button class="btn-fav-item-action" title="Subir" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, -1);">
+                            <i class="fa-solid fa-chevron-up"></i>
+                        </button>
+                        <button class="btn-fav-item-action" title="Bajar" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, 1);">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <button class="btn-fav-item-action fav-action-delete" title="Quitar de favoritos" onclick="event.stopPropagation(); removeSingleFavorite(${originalIdx});">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                ` : `
+                    <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem; margin-left:6px;"></i>
+                `) : `
+                    <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem; margin-left:6px;"></i>
+                `}
             </div>
         `;
     });
 
     list.innerHTML = html;
+    updateFavSelectionUI();
+}
+
+function handleFavItemClick(event, idx) {
+    if (isFavSelectMode) {
+        const s = songFavorites[idx];
+        if (s && canUserManageSong(s)) {
+            toggleFavSelect(idx);
+        } else {
+            showNotification("Solo el autor o un admin puede seleccionar esta canción", "warning");
+        }
+        return;
+    }
+    showFavoriteLyrics(idx);
+}
+
+function toggleFavSelect(idx) {
+    if (selectedFavIndices.has(idx)) {
+        selectedFavIndices.delete(idx);
+    } else {
+        selectedFavIndices.add(idx);
+    }
+    renderSongFavorites();
+}
+
+function updateFavSelectionUI() {
+    const selBar = document.getElementById('favSelectionBar');
+    const selCountEl = document.getElementById('favSelectedCount');
+    const btnDeleteSel = document.getElementById('btnDeleteSelectedFavs');
+    const btnToggle = document.getElementById('btnToggleFavSelect');
+
+    if (btnToggle) {
+        btnToggle.classList.toggle('active', isFavSelectMode);
+    }
+
+    if (selBar) {
+        selBar.classList.toggle('hidden', !isFavSelectMode);
+    }
+
+    if (selCountEl) {
+        selCountEl.textContent = `${selectedFavIndices.size} seleccionada${selectedFavIndices.size === 1 ? '' : 's'}`;
+    }
+
+    if (btnDeleteSel) {
+        btnDeleteSel.disabled = selectedFavIndices.size === 0;
+    }
+}
+
+function initFavActionButtons() {
+    const btnToggle = document.getElementById('btnToggleFavSelect');
+    if (btnToggle && !btnToggle._initialized) {
+        btnToggle._initialized = true;
+        btnToggle.onclick = () => {
+            isFavSelectMode = !isFavSelectMode;
+            if (!isFavSelectMode) selectedFavIndices.clear();
+            renderSongFavorites();
+        };
+    }
+
+    const btnClr = document.getElementById('btnClrFavsMobile');
+    if (btnClr && !btnClr._initialized) {
+        btnClr._initialized = true;
+        btnClr.onclick = () => clearAllFavoritesMobile();
+    }
+
+    const btnSelectAll = document.getElementById('btnSelectAllFavs');
+    if (btnSelectAll && !btnSelectAll._initialized) {
+        btnSelectAll._initialized = true;
+        btnSelectAll.onclick = () => {
+            songFavorites.forEach((s, idx) => {
+                if (canUserManageSong(s)) {
+                    selectedFavIndices.add(idx);
+                }
+            });
+            renderSongFavorites();
+        };
+    }
+
+    const btnCancel = document.getElementById('btnCancelFavSelect');
+    if (btnCancel && !btnCancel._initialized) {
+        btnCancel._initialized = true;
+        btnCancel.onclick = () => {
+            isFavSelectMode = false;
+            selectedFavIndices.clear();
+            renderSongFavorites();
+        };
+    }
+
+    const btnDeleteSel = document.getElementById('btnDeleteSelectedFavs');
+    if (btnDeleteSel && !btnDeleteSel._initialized) {
+        btnDeleteSel._initialized = true;
+        btnDeleteSel.onclick = () => removeSelectedFavorites();
+    }
+}
+
+window.moveFavOrder = function(index, direction) {
+    const song = songFavorites[index];
+    if (!song || !canUserManageSong(song)) {
+        showNotification("Solo el autor de esta canción o un admin puede moverla", "warning");
+        return;
+    }
+    const target = index + direction;
+    if (target < 0 || target >= songFavorites.length) return;
+    const temp = songFavorites[index];
+    songFavorites[index] = songFavorites[target];
+    songFavorites[target] = temp;
+    saveAndSyncSongFavorites();
+};
+
+window.removeSingleFavorite = function(index) {
+    const song = songFavorites[index];
+    if (!song || !canUserManageSong(song)) {
+        showNotification("Solo el autor de esta canción o un admin puede eliminarla", "warning");
+        return;
+    }
+    const songTitle = song.titulo || song.title || "esta canción";
+    showConfirm(`¿Quitar "${songTitle}" de favoritos?`, () => {
+        songFavorites.splice(index, 1);
+        selectedFavIndices.delete(index);
+        saveAndSyncSongFavorites();
+        showNotification("Canción quitada de favoritos", "success");
+    });
+};
+
+window.removeSelectedFavorites = function() {
+    const indicesToDelete = Array.from(selectedFavIndices).filter(idx => {
+        const s = songFavorites[idx];
+        return s && canUserManageSong(s);
+    });
+
+    if (indicesToDelete.length === 0) {
+        showNotification("No has seleccionado canciones que puedas eliminar", "warning");
+        return;
+    }
+
+    showConfirm(`¿Quitar las ${indicesToDelete.length} canciones seleccionadas de favoritos?`, () => {
+        songFavorites = songFavorites.filter((_, idx) => !indicesToDelete.includes(idx));
+        selectedFavIndices.clear();
+        isFavSelectMode = false;
+        saveAndSyncSongFavorites();
+        showNotification(`${indicesToDelete.length} canciones quitadas de favoritos`, "success");
+    });
+};
+
+window.clearAllFavoritesMobile = function() {
+    if (songFavorites.length === 0) {
+        showNotification("No hay canciones en favoritos", "info");
+        return;
+    }
+    const isAdmin = isCurrentUserAdmin();
+    if (isAdmin) {
+        showConfirm("¿Deseas quitar TODAS las canciones de favoritos?", () => {
+            songFavorites = [];
+            selectedFavIndices.clear();
+            isFavSelectMode = false;
+            saveAndSyncSongFavorites();
+            showNotification("Se vació la lista de favoritos", "success");
+        });
+    } else {
+        const myUser = (window.currentUser?.username || window.currentUser?.name || "").toLowerCase();
+        const mySongsCount = songFavorites.filter(s => (s.addedBy || "").toLowerCase() === myUser).length;
+        if (mySongsCount === 0) {
+            showNotification("No tienes canciones añadidas por ti en favoritos", "info");
+            return;
+        }
+        showConfirm(`¿Deseas quitar tus ${mySongsCount} canciones enviadas a favoritos?`, () => {
+            songFavorites = songFavorites.filter(s => (s.addedBy || "").toLowerCase() !== myUser);
+            selectedFavIndices.clear();
+            isFavSelectMode = false;
+            saveAndSyncSongFavorites();
+            showNotification("Tus canciones fueron quitadas de favoritos", "success");
+        });
+    }
+};
+
+function saveAndSyncSongFavorites() {
+    localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
+    renderSongFavorites();
+    db.collection('cantos_favoritos').doc('master').set({
+        lista: songFavorites,
+        updatedBy: window.currentUser?.username || 'mobile',
+        updated: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        console.log("[Mobile] Favoritos sincronizados con Firebase exitosamente.");
+    }).catch(err => {
+        console.error("[Mobile] Error sincronizando favoritos:", err);
+    });
 }
 
 window.showFavoriteLyrics = function(idx) {
