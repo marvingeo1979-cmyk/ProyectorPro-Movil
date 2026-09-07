@@ -1533,6 +1533,41 @@ async function handleGlobalSend() {
     }
     // ------------------------------------
 
+    // --- GUARDAR EN FAVORITOS COMPARTIDOS (NUEVO) ---
+    if (window.cart.songs && window.cart.songs.length > 0) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const newFavEntries = [];
+
+        window.cart.songs.forEach(entry => {
+            const song = entry.data || entry;
+            const sTitle = (song.titulo || song.title || entry.title || "").trim();
+            if (!sTitle) return;
+
+            // Evitar duplicar si ya existe en Favoritos
+            const exists = songFavorites.some(f => (f.titulo || f.title || "").trim().toLowerCase() === sTitle.toLowerCase());
+            if (!exists) {
+                newFavEntries.push({
+                    id: song.id || entry.id || ("canto_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4)),
+                    titulo: sTitle,
+                    title: sTitle,
+                    tono: song.tono || entry.tono || "",
+                    letra: song.letra || song.lyrics || entry.letra || entry.lyrics || "",
+                    lyrics: song.letra || song.lyrics || entry.letra || entry.lyrics || "",
+                    obs: entry.obs || song.obs || "",
+                    addedBy: myUser,
+                    time: timeStr,
+                    timestamp: Date.now()
+                });
+            }
+        });
+
+        if (newFavEntries.length > 0) {
+            songFavorites = [...songFavorites, ...newFavEntries];
+            saveAndSyncSongFavorites();
+        }
+    }
+    // -----------------------------------------------------------
+
     // Limpiar estado local y UI inmediatamente (Optimista)
     window.cart = { bible: [], songs: [] };
     if (document.getElementById('globalObservations')) document.getElementById('globalObservations').value = "";
@@ -2116,6 +2151,7 @@ function renderSongFavorites(filter = "") {
                                 <i class="fa-solid fa-user-lock" style="font-size:0.65rem;"></i> ${ownerName}
                             </span>
                         ` : ''}
+                        ${s.obs ? `<span style="font-size:0.7rem; color:var(--ocher-light); font-style:italic; opacity:0.85;"><i class="fa-solid fa-comment-dots"></i> ${s.obs}</span>` : ''}
                     </div>
                 </div>
 
