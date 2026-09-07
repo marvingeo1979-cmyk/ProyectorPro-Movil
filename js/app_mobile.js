@@ -1134,10 +1134,13 @@ function renderCloudLibrary(lista, type, containerId) {
             <div class="item-info">
                 <div class="item-title">${title} ${mediaBadge}</div>
             </div>
-            <div style="display:flex; gap:12px; align-items:center;">
-                <i class="fa-solid fa-eye" style="opacity:0.3; font-size:1.1rem;" onclick="event.stopPropagation(); showPreviewAnn(${itemJson})"></i>
-                <i class="fa-solid fa-pen-to-square" style="color:var(--ocher-base); font-size:1rem;" onclick="event.stopPropagation(); editAnnouncement(${itemJson})"></i>
-                <i class="fa-solid fa-trash-can" style="color:#e74c3c; font-size:1rem;" onclick="event.stopPropagation(); deleteAnnouncement('${id}')"></i>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn-fav-item-action" title="Copiar para WhatsApp" onclick="event.stopPropagation(); copySingleAnnouncementWhatsApp(${itemJson});" style="color:#25d366; border-color:rgba(37,211,102,0.3); width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:6px; background:rgba(37,211,102,0.1); cursor:pointer;">
+                    <i class="fa-brands fa-whatsapp" style="font-size:0.95rem;"></i>
+                </button>
+                <i class="fa-solid fa-eye" style="opacity:0.3; font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); showPreviewAnn(${itemJson})"></i>
+                <i class="fa-solid fa-pen-to-square" style="color:var(--ocher-base); font-size:1rem; cursor:pointer;" onclick="event.stopPropagation(); editAnnouncement(${itemJson})"></i>
+                <i class="fa-solid fa-trash-can" style="color:#e74c3c; font-size:1rem; cursor:pointer;" onclick="event.stopPropagation(); deleteAnnouncement('${id}')"></i>
             </div>
         `;
         el.onclick = () => {
@@ -2308,6 +2311,50 @@ function formatSingleVerseForWhatsApp(entry) {
     return text.trim();
 }
 
+function formatAllAnnouncementsForWhatsApp() {
+    const list = window.cloudAnnouncements || [];
+    if (list.length === 0) return "";
+
+    const dateStr = getFormattedDateSpanish();
+    let text = `📢 *AVISOS Y ANUNCIOS* 📢\n`;
+    text += `📅 _${dateStr}_\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    list.forEach((ann, idx) => {
+        const title = (ann.titulo || ann.title || "Anuncio").trim();
+        const msg = (ann.texto || ann.content || "").trim();
+
+        text += `📌 *${idx + 1}. ${title}*\n`;
+        if (msg) {
+            text += `${msg}\n`;
+        }
+        text += `\n`;
+    });
+
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+function formatSingleAnnouncementForWhatsApp(ann) {
+    if (!ann) return "";
+    const title = (ann.titulo || ann.title || "Anuncio").trim();
+    const msg = (ann.texto || ann.content || "").trim();
+    const time = ann.tiempo ? `⏱ Duración: ${ann.tiempo}s` : "";
+
+    let text = `📢 *ANUNCIO: ${title.toUpperCase()}* 📢\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    if (msg) {
+        text += `${msg}\n\n`;
+    }
+    if (time) {
+        text += `${time}\n`;
+    }
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
 function formatSongLyricsForWhatsApp(title, tone, lyrics, obs = "") {
     let cleanLyrics = lyrics || "";
     const tempDiv = document.createElement('div');
@@ -2398,17 +2445,72 @@ async function copySingleVerseWhatsApp(idx) {
 }
 window.copySingleVerseWhatsApp = copySingleVerseWhatsApp;
 
+async function copyAllAnnouncementsWhatsApp() {
+    const list = window.cloudAnnouncements || [];
+    if (!list || list.length === 0) {
+        showNotification("No hay anuncios para copiar", "info");
+        return;
+    }
+
+    const text = formatAllAnnouncementsForWhatsApp();
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        showNotification(`¡${list.length} anuncios copiados para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copyAllAnnouncementsWhatsApp = copyAllAnnouncementsWhatsApp;
+
+async function copySingleAnnouncementWhatsApp(annOrIdx) {
+    let ann = null;
+    if (typeof annOrIdx === 'object' && annOrIdx !== null) {
+        ann = annOrIdx;
+    } else if (typeof annOrIdx === 'number' || typeof annOrIdx === 'string') {
+        ann = (window.cloudAnnouncements || [])[annOrIdx] || (window.cloudAnnouncements || []).find(a => String(a.id) === String(annOrIdx));
+    }
+
+    if (!ann) {
+        showNotification("No se encontró el anuncio para copiar", "error");
+        return;
+    }
+
+    const title = ann.titulo || ann.title || "Anuncio";
+    const text = formatSingleAnnouncementForWhatsApp(ann);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        showNotification(`¡"${title}" copiado para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copySingleAnnouncementWhatsApp = copySingleAnnouncementWhatsApp;
+
 window.copyCurrentPreviewLyricsWhatsApp = async function() {
+    if (window.currentPreviewAnn) {
+        const ann = window.currentPreviewAnn;
+        const title = ann.titulo || ann.title || "Anuncio";
+        const text = formatSingleAnnouncementForWhatsApp(ann);
+        const success = await copyTextToClipboard(text);
+        if (success) {
+            showNotification(`¡Anuncio "${title}" copiado para WhatsApp! 📋`, "success");
+        } else {
+            showNotification("No se pudo copiar al portapapeles", "error");
+        }
+        return;
+    }
+
     let title = "";
     let tone = "";
     let lyrics = "";
     let obs = "";
 
-    if (window._currentPreviewSong) {
-        title = window._currentPreviewSong.titulo || window._currentPreviewSong.title || "Sin título";
-        tone = window._currentPreviewSong.tono || "";
-        lyrics = window._currentPreviewSong.letra || window._currentPreviewSong.lyrics || "";
-        obs = window._currentPreviewSong.obs || "";
+    const song = window.currentPreviewSong || window._currentPreviewSong;
+    if (song) {
+        title = song.titulo || song.title || "Sin título";
+        tone = song.tono || "";
+        lyrics = song.letra || song.lyrics || "";
+        obs = song.obs || "";
     } else {
         const titleEl = document.getElementById('previewTitle');
         const lyricsEl = document.getElementById('previewLyrics');

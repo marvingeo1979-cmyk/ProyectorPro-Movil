@@ -297,7 +297,17 @@
                 <!-- Panel 3: Anuncios -->
                 <div class="panel" data-id="anuncios">
                     <div class="panel-header-mini">
-                        <h2>Anuncios</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                            <div>
+                                <h2>Anuncios</h2>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Información y avisos sincronizados con PC</p>
+                            </div>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button onclick="copyAllAnnouncementsWhatsApp()" class="btn-fav-head-action btn-fav-whatsapp" title="Copiar anuncios para WhatsApp">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div id="announcementListCloud" class="mobile-grid-list"
                         style="flex: 1; min-height: 120px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
@@ -636,7 +646,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <!-- Scripts -->
-    <script src="js/app_mobile.js?v=3.2"></script>
+    <script src="js/app_mobile.js?v=3.4"></script>
 </body>
 
 </html>
