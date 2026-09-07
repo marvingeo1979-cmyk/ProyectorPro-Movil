@@ -1239,6 +1239,28 @@ function showPreviewAnn(ann) {
     window.currentPreviewSong = null;
     window.currentPreviewAnn = ann;
     document.getElementById('previewTitle').textContent = ann.titulo || "Anuncio General";
+
+    // Ocultar Tono y BPM para anuncios (no aplica)
+    const toneDisplay = document.getElementById('previewTone');
+    if (toneDisplay) {
+        toneDisplay.textContent = "";
+        toneDisplay.classList.add('hidden');
+    }
+    const bpmDisplay = document.getElementById('previewBpm');
+    if (bpmDisplay) {
+        bpmDisplay.textContent = "";
+        bpmDisplay.classList.add('hidden');
+    }
+
+    // Detener metrónomo si está activo y ocultar la barra
+    if (window.MobileMetronome && typeof window.MobileMetronome.stop === 'function') {
+        window.MobileMetronome.stop();
+    }
+    const metronomeBar = document.getElementById('previewMetronomeBar');
+    if (metronomeBar) {
+        metronomeBar.classList.add('hidden');
+    }
+
     const lyricsEl = document.getElementById('previewLyrics');
     
     let content = ann.texto || "Sin contenido de texto.";
@@ -1247,7 +1269,7 @@ function showPreviewAnn(ann) {
     const rawImg = ann.thumb || ann.img || ann.background || "";
     const validBgImg = (rawImg && !rawImg.startsWith('blob:')) ? rawImg : null;
 
-    // Badge elegante de medio (si tiene nombre o tipo, SIN mostrar URLs de código feas)
+    // Badge de medio en contenedor separado y no-seleccionable (para que no se copie al portapapeles/Excel)
     let badgeHtml = "";
     if (ann.bgName || (ann.bgType && ann.bgType !== 'none')) {
         const isVideo = ann.bgType === 'video' || (ann.bgName && ann.bgName.match(/\.(mp4|webm|mkv|mov)$/i));
@@ -1255,11 +1277,16 @@ function showPreviewAnn(ann) {
         const labelText = ann.bgName ? ann.bgName : (isVideo ? 'Video de fondo' : 'Imagen de fondo');
         
         badgeHtml = `
-            <div style="display:inline-flex; align-items:center; gap:7px; padding:5px 14px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.3); border-radius:20px; font-size:0.75rem; color:var(--ocher-light); margin-bottom:14px;">
+            <div style="display:inline-flex; align-items:center; gap:7px; padding:5px 14px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.3); border-radius:20px; font-size:0.75rem; color:var(--ocher-light); margin-bottom:14px; user-select:none; -webkit-user-select:none;">
                 <i class="fa-solid ${iconClass}"></i>
                 <span>Fondo: <strong>${labelText}</strong></span>
             </div>
         `;
+    }
+
+    const badgeCont = document.getElementById('previewBadgeContainer');
+    if (badgeCont) {
+        badgeCont.innerHTML = badgeHtml;
     }
 
     // Estilo de la tarjeta: si hay fondo válido, aplicarlo con overlay oscuro para contraste perfecto
@@ -1267,8 +1294,8 @@ function showPreviewAnn(ann) {
         ? `background-color: #14141c; background-image: linear-gradient(rgba(14, 13, 18, 0.72), rgba(10, 9, 14, 0.86)), url('${validBgImg}'); background-size: cover; background-position: center; background-repeat: no-repeat; border: 1px solid rgba(212,175,55,0.35); box-shadow: 0 4px 18px rgba(0,0,0,0.6);`
         : `background: rgba(255,255,255,0.05); border-left: 4px solid var(--ocher-base);`;
 
+    // lyricsEl contendrá ÚNICAMENTE el texto del anuncio, sin rótulos de fondo
     lyricsEl.innerHTML = `
-        ${badgeHtml}
         <div style="${cardBgStyle} padding: 18px; border-radius: 12px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">
             ${content}
         </div>
@@ -1282,6 +1309,18 @@ async function showPreview(song) {
     window.currentPreviewAnn = null; // Limpiar preview de anuncio
     window.currentPreviewSong = song;
     document.getElementById('previewTitle').textContent = song.titulo;
+
+    // Limpiar badge de medios de anuncios
+    const badgeCont = document.getElementById('previewBadgeContainer');
+    if (badgeCont) {
+        badgeCont.innerHTML = "";
+    }
+
+    // Mostrar barra de metrónomo para cantos
+    const metronomeBar = document.getElementById('previewMetronomeBar');
+    if (metronomeBar) {
+        metronomeBar.classList.remove('hidden');
+    }
     
     // Asignar Tono si existe
     const toneDisplay = document.getElementById('previewTone');
@@ -1328,7 +1367,7 @@ async function showPreview(song) {
             const doc = await db.collection('biblioteca_cantos_texto').doc(String(song.id)).get();
             if (doc.exists) {
                 const data = doc.data();
-                song.letra = data.letra; // Cachear para la prÃ³xima vez
+                song.letra = data.letra; // Cachear para la próxima vez
                 lyricsEl.innerHTML = formatLyrics(data.letra);
             } else {
                 lyricsEl.textContent = "Error: Letra no encontrada. Usa 'Exportar Letras' en la PC.";
@@ -1388,6 +1427,25 @@ function formatLyrics(lyrics) {
 }
 
 function closePreview() {
+    window.currentPreviewSong = null;
+    window.currentPreviewAnn = null;
+    if (window.MobileMetronome && typeof window.MobileMetronome.stop === 'function') {
+        window.MobileMetronome.stop();
+    }
+    const toneDisplay = document.getElementById('previewTone');
+    if (toneDisplay) {
+        toneDisplay.textContent = "";
+        toneDisplay.classList.add('hidden');
+    }
+    const bpmDisplay = document.getElementById('previewBpm');
+    if (bpmDisplay) {
+        bpmDisplay.textContent = "";
+        bpmDisplay.classList.add('hidden');
+    }
+    const badgeCont = document.getElementById('previewBadgeContainer');
+    if (badgeCont) {
+        badgeCont.innerHTML = "";
+    }
     document.getElementById('modalPreview').classList.add('hidden');
 }
 
@@ -2322,7 +2380,8 @@ function formatAllAnnouncementsForWhatsApp() {
 
     list.forEach((ann, idx) => {
         const title = (ann.titulo || ann.title || "Anuncio").trim();
-        const msg = (ann.texto || ann.content || "").trim();
+        let msg = (ann.texto || ann.content || "").trim();
+        msg = msg.replace(/^Fondo:\s*[^\n]*\n?/gim, '').replace(/\n?Fondo:\s*[^\n]*/gi, '').trim();
 
         text += `📌 *${idx + 1}. ${title}*\n`;
         if (msg) {
@@ -2339,16 +2398,14 @@ function formatAllAnnouncementsForWhatsApp() {
 function formatSingleAnnouncementForWhatsApp(ann) {
     if (!ann) return "";
     const title = (ann.titulo || ann.title || "Anuncio").trim();
-    const msg = (ann.texto || ann.content || "").trim();
-    const time = ann.tiempo ? `⏱ Duración: ${ann.tiempo}s` : "";
+    let msg = (ann.texto || ann.content || "").trim();
+    // Limpiar cualquier residuo de rótulo de fondo
+    msg = msg.replace(/^Fondo:\s*[^\n]*\n?/gim, '').replace(/\n?Fondo:\s*[^\n]*/gi, '').trim();
 
     let text = `📢 *ANUNCIO: ${title.toUpperCase()}* 📢\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     if (msg) {
         text += `${msg}\n\n`;
-    }
-    if (time) {
-        text += `${time}\n`;
     }
     text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     text += `✨ _ProyectorPro_`;
@@ -2487,8 +2544,14 @@ async function copySingleAnnouncementWhatsApp(annOrIdx) {
 window.copySingleAnnouncementWhatsApp = copySingleAnnouncementWhatsApp;
 
 window.copyCurrentPreviewLyricsWhatsApp = async function() {
-    if (window.currentPreviewAnn) {
-        const ann = window.currentPreviewAnn;
+    let ann = window.currentPreviewAnn;
+    if (!ann && window.cloudAnnouncements && window.cloudAnnouncements.length > 0) {
+        const titleEl = document.getElementById('previewTitle');
+        const currentTitle = titleEl ? (titleEl.textContent || "").trim() : "";
+        ann = window.cloudAnnouncements.find(a => (a.titulo || a.title || "").trim() === currentTitle);
+    }
+
+    if (ann) {
         const title = ann.titulo || ann.title || "Anuncio";
         const text = formatSingleAnnouncementForWhatsApp(ann);
         const success = await copyTextToClipboard(text);
@@ -2518,6 +2581,8 @@ window.copyCurrentPreviewLyricsWhatsApp = async function() {
         title = titleEl ? titleEl.textContent : "Canto";
         tone = (toneEl && !toneEl.classList.contains('hidden')) ? toneEl.textContent.replace(/^Tono:\s*/i, '') : "";
         lyrics = lyricsEl ? lyricsEl.innerText : "";
+        // Limpiar cualquier residuo de fondo si por alguna razón viniera del DOM
+        lyrics = lyrics.replace(/^Fondo:\s*[^\n]*\n?/gim, '').replace(/\n?Fondo:\s*[^\n]*/gi, '').trim();
     }
 
     const text = formatSongLyricsForWhatsApp(title, tone, lyrics, obs);
