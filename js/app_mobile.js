@@ -2463,11 +2463,19 @@ function renderSongFavorites(filter = "") {
         const isLast = originalIdx === songFavorites.length - 1;
         const isChecked = selectedFavIndices.has(originalIdx);
         const ownerName = s.addedBy || 'PC';
-        let sBpm = s.bpm || "";
-        if (!sBpm && window.cloudSongs && window.cloudSongs.length > 0) {
-            const cleanT = normalizeText(sTitle);
-            const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
-            if (match && match.bpm) sBpm = match.bpm;
+        
+        let sTono = s.tono || "";
+        let sBpm = (s.bpm !== undefined && s.bpm !== null && s.bpm !== '') ? String(s.bpm) : "";
+        if ((!sBpm || !sTono) && window.cloudSongs && window.cloudSongs.length > 0) {
+            const cleanT = (typeof normalizeText === 'function') ? normalizeText(sTitle) : sTitle.toLowerCase().trim();
+            const match = window.cloudSongs.find(cs => {
+                const csT = (typeof normalizeText === 'function') ? normalizeText(cs.titulo || cs.title || "") : (cs.titulo || cs.title || "").toLowerCase().trim();
+                return csT === cleanT;
+            });
+            if (match) {
+                if (!sBpm && match.bpm) sBpm = String(match.bpm);
+                if (!sTono && match.tono) sTono = String(match.tono);
+            }
         }
 
         html += `
@@ -2482,7 +2490,7 @@ function renderSongFavorites(filter = "") {
                 <div style="flex:1; min-width:0; padding-right:8px;">
                     <div class="song-name-main" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sTitle}</div>
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
-                        ${s.tono ? `<span style="font-size:0.75rem; color:var(--ocher-light);">Tono: ${s.tono}</span>` : ''}
+                        ${sTono ? `<span style="font-size:0.75rem; color:var(--ocher-light);">Tono: ${sTono}</span>` : ''}
                         ${sBpm ? `<span style="font-size:0.75rem; color:var(--ocher-light);">BPM: ${sBpm}</span>` : ''}
                         ${!canManage ? `
                             <span class="song-owner-tag" title="Enviado por ${ownerName}">
@@ -2933,6 +2941,22 @@ const MobileMetronome = {
 window.MobileMetronome = MobileMetronome;
 
 function saveAndSyncSongFavorites() {
+    // Asegurar que ninguna canción en favoritos pierda BPM si está en cloudSongs
+    if (window.cloudSongs && window.cloudSongs.length > 0) {
+        songFavorites.forEach(f => {
+            if (!f.bpm) {
+                const cleanT = (typeof normalizeText === 'function') ? normalizeText(f.titulo || f.title || "") : (f.titulo || f.title || "").toLowerCase().trim();
+                const match = window.cloudSongs.find(cs => {
+                    const csT = (typeof normalizeText === 'function') ? normalizeText(cs.titulo || cs.title || "") : (cs.titulo || cs.title || "").toLowerCase().trim();
+                    return csT === cleanT;
+                });
+                if (match) {
+                    if (match.bpm) f.bpm = match.bpm;
+                    if (match.compas && !f.compas) f.compas = match.compas;
+                }
+            }
+        });
+    }
     localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
     renderSongFavorites();
     db.collection('cantos_favoritos').doc('master').set({
