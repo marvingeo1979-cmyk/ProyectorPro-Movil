@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#1a0609">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/mobile_style.css">
+    <link rel="stylesheet" href="css/mobile_style.css?v=3.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 
@@ -468,6 +468,30 @@
                     </button>
                 </div>
             </header>
+            <!-- Barra de Metrónomo Integrada en Previsualización de Canto -->
+            <div id="previewMetronomeBar" class="preview-metro-bar">
+                <div class="preview-metro-left">
+                    <button type="button" id="btnMobileToggleMetro" class="btn-metro-mobile-pill" title="Iniciar / Detener Metrónomo">
+                        <i id="iconMobileMetroPlay" class="fa-solid fa-play" style="font-size:0.75rem;"></i>
+                        <span id="mobileMetroBpmLabel">120 BPM</span>
+                        <span id="mobileMetroVisualBeat" class="mobile-metro-beat-dot"></span>
+                    </button>
+                    <select id="mobileMetroCompas" class="mobile-metro-select">
+                        <option value="4/4" selected>4/4</option>
+                        <option value="3/4">3/4</option>
+                        <option value="6/8">6/8</option>
+                        <option value="2/4">2/4</option>
+                    </select>
+                </div>
+                <div class="preview-metro-right">
+                    <button type="button" id="btnMobileTapTempo" class="btn-metro-mobile-tap" title="Tap Tempo">TAP</button>
+                    <button type="button" id="btnMobileMetroMinus" class="btn-metro-mobile-step" title="Bajar tempo">-</button>
+                    <button type="button" id="btnMobileMetroPlus" class="btn-metro-mobile-step" title="Subir tempo">+</button>
+                    <button type="button" id="btnMobileMetroMute" class="btn-metro-mobile-step active" title="Sonido Click Activo">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+            </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1.5rem; background: var(--bg-dark);">
                 <div id="previewLyrics"
                     style="font-family: inherit; font-size: 1.1rem; line-height: 1.6; color: #fff; border: none; padding: 0;">
@@ -607,7 +631,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <!-- Scripts -->
-    <script src="js/app_mobile.js"></script>
+    <script src="js/app_mobile.js?v=3.0"></script>
 </body>
 
 </html>

@@ -1256,3 +1256,144 @@ body {
     accent-color: var(--ocher-base);
     cursor: pointer;
 }
+
+/* ── METRÓNOMO EN APP MÓVIL ── */
+.preview-metro-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    padding: 8px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.preview-metro-left,
+.preview-metro-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-metro-mobile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: var(--ocher-light);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-metro-mobile-pill:active {
+    transform: scale(0.95);
+}
+
+.btn-metro-mobile-pill.active {
+    background: rgba(74, 222, 128, 0.22);
+    border-color: #4ade80;
+    color: #4ade80;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+.mobile-metro-beat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: inline-block;
+    transition: transform 0.05s ease, background-color 0.05s ease;
+}
+
+.mobile-metro-beat-dot.beat-down {
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+    transform: scale(1.4);
+}
+
+.mobile-metro-beat-dot.beat-sub {
+    background: #facc15;
+    box-shadow: 0 0 6px #facc15;
+    transform: scale(1.15);
+}
+
+.mobile-metro-select {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    outline: none;
+}
+
+.mobile-metro-select option {
+    background: #1a0609;
+    color: #fff;
+}
+
+.btn-metro-mobile-tap {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(114, 28, 36, 0.4));
+    border: 1px solid var(--ocher-base);
+    color: var(--ocher-light);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.btn-metro-mobile-tap:active {
+    transform: scale(0.92);
+    background: var(--ocher-base);
+    color: #1a0609;
+}
+
+.btn-metro-mobile-step {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-metro-mobile-step:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-metro-mobile-step.active {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.4);
+    background: rgba(74, 222, 128, 0.15);
+}
+
+.song-bpm-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--ocher-light);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    padding: 1px 6px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+

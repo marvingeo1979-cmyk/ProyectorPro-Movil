@@ -1244,6 +1244,11 @@ async function showPreview(song) {
             toneDisplay.classList.add('hidden');
         }
     }
+
+    // Inicializar Metrónomo para la canción
+    if (window.MobileMetronome) {
+        MobileMetronome.loadSong(song);
+    }
     const lyricsEl = document.getElementById('previewLyrics');
     
     if (song.letra) {
@@ -2123,6 +2128,7 @@ function formatSongFavoritesForWhatsApp(songsToFormat = null) {
         text += `*${idx + 1}. ${title}*\n`;
         let meta = [];
         if (tono) meta.push(`🎹 Tono: *${tono}*`);
+        if (s.bpm) meta.push(`⏱ *${s.bpm} BPM*`);
         if (obs) meta.push(`📝 Obs: _${obs}_`);
         if (meta.length > 0) {
             text += `   ${meta.join('  |  ')}\n`;
@@ -2145,6 +2151,7 @@ function formatSingleSongForWhatsApp(song) {
     let text = `🎵 *${title.toUpperCase()}* 🎵\n`;
     let meta = [];
     if (tono) meta.push(`🎹 Tono: *${tono}*`);
+    if (song.bpm) meta.push(`⏱ *${song.bpm} BPM*`);
     if (obs) meta.push(`📝 Obs: _${obs}_`);
     if (meta.length > 0) {
         text += `${meta.join('  |  ')}\n`;
@@ -2414,6 +2421,7 @@ function renderSongFavorites(filter = "") {
                     <div class="song-name-main" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sTitle}</div>
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
                         ${s.tono ? `<span style="font-size:0.75rem; color:var(--ocher-light);">Tono: ${s.tono}</span>` : ''}
+                        ${s.bpm ? `<span class="song-bpm-tag" title="Tempo"><i class="fa-solid fa-stopwatch"></i> ${s.bpm} BPM</span>` : ''}
                         ${!canManage ? `
                             <span class="song-owner-tag" title="Enviado por ${ownerName}">
                                 <i class="fa-solid fa-user-lock" style="font-size:0.65rem;"></i> ${ownerName}
@@ -2559,6 +2567,10 @@ function initFavActionButtons() {
         btnCopySelected._initialized = true;
         btnCopySelected.onclick = () => copyFavsToWhatsApp(true);
     }
+
+    if (window.MobileMetronome) {
+        MobileMetronome.init();
+    }
 }
 
 window.moveFavOrder = function(index, direction) {
@@ -2641,6 +2653,213 @@ window.clearAllFavoritesMobile = function() {
     }
 };
 
+// ── METRÓNOMO PROFESIONAL EN APP MÓVIL ──
+const MobileMetronome = {
+    audioCtx: null,
+    isPlaying: false,
+    bpm: 120,
+    compas: '4/4',
+    beatsPerMeasure: 4,
+    currentBeat: 0,
+    nextNoteTime: 0.0,
+    timerID: null,
+    lookahead: 25.0,
+    scheduleAheadTime: 0.1,
+    soundEnabled: true,
+    tapTimes: [],
+    currentSong: null,
+
+    init() {
+        this.bindEvents();
+        this.updateUI();
+    },
+
+    getAudioContext() {
+        if (!this.audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            this.audioCtx = new AudioContextClass();
+        }
+        if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+        return this.audioCtx;
+    },
+
+    loadSong(song) {
+        this.currentSong = song;
+        const bpm = song && song.bpm ? parseInt(song.bpm) : 120;
+        const compas = song && song.compas ? song.compas : '4/4';
+        this.setBpm(bpm, compas);
+    },
+
+    setBpm(newBpm, newCompas = null) {
+        if (newBpm && !isNaN(newBpm)) {
+            this.bpm = Math.min(Math.max(parseInt(newBpm), 30), 280);
+        }
+        if (newCompas) {
+            this.setCompas(newCompas);
+        } else {
+            this.updateUI();
+        }
+    },
+
+    setCompas(compasStr) {
+        this.compas = compasStr || '4/4';
+        const parts = this.compas.split('/');
+        this.beatsPerMeasure = parseInt(parts[0]) || 4;
+        this.currentBeat = 0;
+        this.updateUI();
+    },
+
+    toggle() {
+        if (this.isPlaying) {
+            this.stop();
+        } else {
+            this.start();
+        }
+    },
+
+    start() {
+        if (this.isPlaying) return;
+        const ctx = this.getAudioContext();
+        this.isPlaying = true;
+        this.currentBeat = 0;
+        this.nextNoteTime = ctx.currentTime + 0.05;
+        this.timerID = setInterval(() => this.scheduler(), this.lookahead);
+        this.updateUI();
+    },
+
+    stop() {
+        if (!this.isPlaying) return;
+        this.isPlaying = false;
+        clearInterval(this.timerID);
+        this.timerID = null;
+        this.currentBeat = 0;
+        this.updateUI();
+    },
+
+    nextNote() {
+        const secondsPerBeat = 60.0 / this.bpm;
+        this.nextNoteTime += secondsPerBeat;
+        this.currentBeat = (this.currentBeat + 1) % this.beatsPerMeasure;
+    },
+
+    scheduleNote(beatNumber, time) {
+        if (this.soundEnabled && this.audioCtx) {
+            try {
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+
+                const isDownbeat = (beatNumber === 0);
+                osc.frequency.value = isDownbeat ? 1200 : 800;
+                gain.gain.setValueAtTime(isDownbeat ? 0.9 : 0.6, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + (isDownbeat ? 0.06 : 0.04));
+
+                osc.start(time);
+                osc.stop(time + (isDownbeat ? 0.06 : 0.04));
+            } catch (err) {
+                console.warn('[MobileMetronome] Error audio:', err);
+            }
+        }
+
+        const timeToVisual = Math.max(0, (time - this.audioCtx.currentTime) * 1000);
+        setTimeout(() => {
+            if (!this.isPlaying) return;
+            this.triggerVisualBeat(beatNumber);
+        }, timeToVisual);
+    },
+
+    scheduler() {
+        if (!this.isPlaying || !this.audioCtx) return;
+        while (this.nextNoteTime < this.audioCtx.currentTime + this.scheduleAheadTime) {
+            this.scheduleNote(this.currentBeat, this.nextNoteTime);
+            this.nextNote();
+        }
+    },
+
+    triggerVisualBeat(beat) {
+        const visual = document.getElementById('mobileMetroVisualBeat');
+        if (visual) {
+            visual.className = 'mobile-metro-beat-dot ' + (beat === 0 ? 'beat-down' : 'beat-sub');
+            setTimeout(() => {
+                if (visual) visual.className = 'mobile-metro-beat-dot';
+            }, 120);
+        }
+
+        // Vibración háptica suave en el tiempo 1 si el móvil lo permite
+        if (beat === 0 && navigator.vibrate) {
+            try { navigator.vibrate(14); } catch (e) { }
+        }
+    },
+
+    tapTempo() {
+        const now = performance.now();
+        if (this.tapTimes.length > 0 && (now - this.tapTimes[this.tapTimes.length - 1]) > 2500) {
+            this.tapTimes = [];
+        }
+        this.tapTimes.push(now);
+        if (this.tapTimes.length > 5) {
+            this.tapTimes.shift();
+        }
+        if (this.tapTimes.length >= 2) {
+            const intervals = [];
+            for (let i = 1; i < this.tapTimes.length; i++) {
+                intervals.push(this.tapTimes[i] - this.tapTimes[i - 1]);
+            }
+            const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+            const calculatedBpm = Math.round(60000 / avgInterval);
+            this.setBpm(calculatedBpm);
+        }
+    },
+
+    updateUI() {
+        const pill = document.getElementById('btnMobileToggleMetro');
+        const label = document.getElementById('mobileMetroBpmLabel');
+        const icon = document.getElementById('iconMobileMetroPlay');
+        const compasSelect = document.getElementById('mobileMetroCompas');
+        const muteBtn = document.getElementById('btnMobileMetroMute');
+
+        if (label) label.textContent = `${this.bpm} BPM`;
+        if (compasSelect) compasSelect.value = this.compas;
+        if (pill) {
+            pill.classList.toggle('active', this.isPlaying);
+        }
+        if (icon) {
+            icon.className = this.isPlaying ? 'fa-solid fa-square' : 'fa-solid fa-play';
+        }
+        if (muteBtn) {
+            muteBtn.classList.toggle('active', this.soundEnabled);
+            muteBtn.innerHTML = this.soundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
+        }
+    },
+
+    bindEvents() {
+        const pill = document.getElementById('btnMobileToggleMetro');
+        const tapBtn = document.getElementById('btnMobileTapTempo');
+        const minusBtn = document.getElementById('btnMobileMetroMinus');
+        const plusBtn = document.getElementById('btnMobileMetroPlus');
+        const muteBtn = document.getElementById('btnMobileMetroMute');
+        const compasSelect = document.getElementById('mobileMetroCompas');
+
+        if (pill) pill.onclick = () => this.toggle();
+        if (tapBtn) tapBtn.onclick = () => this.tapTempo();
+        if (minusBtn) minusBtn.onclick = () => this.setBpm(this.bpm - 1);
+        if (plusBtn) plusBtn.onclick = () => this.setBpm(this.bpm + 1);
+        if (muteBtn) {
+            muteBtn.onclick = () => {
+                this.soundEnabled = !this.soundEnabled;
+                this.updateUI();
+            };
+        }
+        if (compasSelect) {
+            compasSelect.onchange = () => this.setCompas(compasSelect.value);
+        }
+    }
+};
+window.MobileMetronome = MobileMetronome;
+
 function saveAndSyncSongFavorites() {
     localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
     renderSongFavorites();
@@ -2678,6 +2897,11 @@ window.showFavoriteLyrics = function(idx) {
             toneEl.classList.add('hidden');
         }
     }
+
+    if (window.MobileMetronome) {
+        MobileMetronome.loadSong(song);
+    }
+
     lyrics.innerHTML = formatLyrics(sLyrics);
     
     // Ocultar botón de añadir al carrito porque esto es consulta de favoritos
@@ -2690,6 +2914,9 @@ window.showFavoriteLyrics = function(idx) {
 const originalClosePreview = window.closePreview;
 window.closePreview = function() {
     window._currentPreviewSong = null;
+    if (window.MobileMetronome) {
+        MobileMetronome.stop();
+    }
     const footer = document.getElementById('modalPreviewFooter');
     if (footer) footer.style.display = 'flex';
     if (originalClosePreview) originalClosePreview();
