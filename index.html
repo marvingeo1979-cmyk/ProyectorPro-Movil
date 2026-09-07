@@ -253,6 +253,9 @@
                             <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">Repertorio en vivo sincronizado con PC</p>
                         </div>
                         <div style="display: flex; gap: 6px; align-items: center;">
+                            <button id="btnCopyFavsWhatsApp" class="btn-fav-head-action btn-fav-whatsapp" title="Copiar repertorio para WhatsApp">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </button>
                             <button id="btnToggleFavSelect" class="btn-fav-head-action" title="Seleccionar varias">
                                 <i class="fa-solid fa-list-check"></i>
                             </button>
@@ -266,6 +269,9 @@
                     <div id="favSelectionBar" class="fav-selection-bar hidden">
                         <span id="favSelectedCount" class="fav-selection-text">0 seleccionadas</span>
                         <div style="display: flex; gap: 6px; align-items: center;">
+                            <button id="btnCopySelectedFavs" class="btn-fav-subaction btn-fav-subaction-whatsapp" title="Copiar seleccionadas para WhatsApp">
+                                <i class="fa-brands fa-whatsapp"></i> Copiar
+                            </button>
                             <button id="btnSelectAllFavs" class="btn-fav-subaction">Todos</button>
                             <button id="btnDeleteSelectedFavs" class="btn-fav-subaction btn-fav-subaction-danger" disabled>
                                 <i class="fa-solid fa-trash-can"></i> Borrar
@@ -362,16 +368,21 @@
                 <!-- Panel Historial de Versículos (Nuevo) -->
                 <div class="panel" data-id="historialVersiculos">
                     <div class="panel-header-mini">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                             <div>
                                 <h2>Historial de Lectura</h2>
                                 <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 5px;">Versículos
                                     proyectados recientemente</p>
                             </div>
-                            <button onclick="clearVerseHistory()"
-                                style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
-                                <i class="fa-solid fa-eraser"></i> LIMPIAR
-                            </button>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button onclick="copyVerseHistoryWhatsApp()" class="btn-fav-head-action btn-fav-whatsapp" title="Copiar historial para WhatsApp">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                </button>
+                                <button onclick="clearVerseHistory()"
+                                    style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; padding: 0.5rem 0.8rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">
+                                    <i class="fa-solid fa-eraser"></i> LIMPIAR
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -448,9 +459,14 @@
                         style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9; margin-top: 2px;">Tono:
                         -</span>
                 </div>
-                <button onclick="closePreview()" class="close-modal-btn" style="margin: 0; flex-shrink: 0;">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button id="btnCopyPreviewWhatsApp" onclick="copyCurrentPreviewLyricsWhatsApp()" class="btn-fav-head-action btn-fav-whatsapp" title="Copiar letra para WhatsApp" style="background: rgba(37,211,102,0.15); border-color: rgba(37,211,102,0.35);">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </button>
+                    <button onclick="closePreview()" class="close-modal-btn" style="margin: 0; flex-shrink: 0;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </header>
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1.5rem; background: var(--bg-dark);">
                 <div id="previewLyrics"

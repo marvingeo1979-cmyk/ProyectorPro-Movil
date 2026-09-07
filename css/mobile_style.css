@@ -1127,6 +1127,26 @@ body {
     border-color: #ef4444;
 }
 
+.btn-fav-head-action.btn-fav-whatsapp {
+    color: #25d366;
+    border-color: rgba(37, 211, 102, 0.3);
+}
+
+.btn-fav-head-action.btn-fav-whatsapp:active {
+    background: rgba(37, 211, 102, 0.25);
+    border-color: #25d366;
+    color: #ffffff;
+}
+
+.btn-fav-subaction-whatsapp {
+    color: #25d366 !important;
+    border-color: rgba(37, 211, 102, 0.35) !important;
+}
+
+.btn-fav-subaction-whatsapp:active {
+    background: rgba(37, 211, 102, 0.2) !important;
+}
+
 .fav-selection-bar {
     background: rgba(212, 175, 55, 0.08);
     border: 1px solid rgba(212, 175, 55, 0.25);

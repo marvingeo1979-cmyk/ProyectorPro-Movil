@@ -2052,6 +2052,274 @@ function checkUserSession() {
     }
 }
 
+/** ── UTILIDADES DE COPIADO Y COMPARTIDO (WHATSAPP) ── */
+async function copyTextToClipboard(text) {
+    if (!text) return false;
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (e) {
+            console.warn("[Clipboard] writeText falló, usando fallback:", e);
+        }
+    }
+
+    try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        textArea.setAttribute("readonly", "");
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+
+        const isIOS = navigator.userAgent.match(/ipad|iphone/i);
+        if (isIOS) {
+            const range = document.createRange();
+            range.selectNodeContents(textArea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textArea.setSelectionRange(0, 999999);
+        } else {
+            textArea.select();
+        }
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return Boolean(successful);
+    } catch (err) {
+        console.error("[Clipboard] Falló copia:", err);
+        return false;
+    }
+}
+window.copyTextToClipboard = copyTextToClipboard;
+
+function getFormattedDateSpanish() {
+    try {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        return dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    } catch (e) {
+        return new Date().toLocaleDateString();
+    }
+}
+
+function formatSongFavoritesForWhatsApp(songsToFormat = null) {
+    const list = songsToFormat || songFavorites || [];
+    if (list.length === 0) return "";
+
+    const dateStr = getFormattedDateSpanish();
+    let text = `🎶 *REPERTORIO DE ALABANZAS* 🎶\n`;
+    text += `📅 _${dateStr}_\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    list.forEach((s, idx) => {
+        const title = (s.titulo || s.title || "Sin título").trim();
+        const tono = (s.tono || "").trim();
+        const obs = (s.obs || "").trim();
+
+        text += `*${idx + 1}. ${title}*\n`;
+        let meta = [];
+        if (tono) meta.push(`🎹 Tono: *${tono}*`);
+        if (obs) meta.push(`📝 Obs: _${obs}_`);
+        if (meta.length > 0) {
+            text += `   ${meta.join('  |  ')}\n`;
+        }
+        text += `\n`;
+    });
+
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+function formatSingleSongForWhatsApp(song) {
+    if (!song) return "";
+    const title = (song.titulo || song.title || "Sin título").trim();
+    const tono = (song.tono || "").trim();
+    const lyrics = song.letra || song.lyrics || "";
+    const obs = (song.obs || "").trim();
+
+    let text = `🎵 *${title.toUpperCase()}* 🎵\n`;
+    let meta = [];
+    if (tono) meta.push(`🎹 Tono: *${tono}*`);
+    if (obs) meta.push(`📝 Obs: _${obs}_`);
+    if (meta.length > 0) {
+        text += `${meta.join('  |  ')}\n`;
+    }
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    if (lyrics) {
+        text += lyrics.trim() + `\n\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    }
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+function formatVerseHistoryForWhatsApp() {
+    const list = window.verseHistory || [];
+    if (list.length === 0) return "";
+
+    const dateStr = getFormattedDateSpanish();
+    let text = `📖 *HISTORIAL DE VERSÍCULOS* 📖\n`;
+    text += `📅 _${dateStr}_\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    list.forEach((entry, idx) => {
+        const item = entry.data || entry;
+        const cita = (item.cita || "Versículo").trim().toUpperCase();
+        const verso = (item.texto || "").trim();
+        const obs = (entry.obs || "").trim();
+
+        text += `📍 *${cita}*\n`;
+        text += `«${verso}»\n`;
+        if (obs) {
+            text += `📝 _Obs: ${obs}_\n`;
+        }
+        text += `\n`;
+    });
+
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+function formatSingleVerseForWhatsApp(entry) {
+    if (!entry) return "";
+    const item = entry.data || entry;
+    const cita = (item.cita || "Versículo").trim().toUpperCase();
+    const verso = (item.texto || "").trim();
+    const obs = (entry.obs || "").trim();
+
+    let text = `📖 *${cita}*\n\n«${verso}»\n`;
+    if (obs) {
+        text += `\n📝 _Obs: ${obs}_\n`;
+    }
+    text += `\n✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+function formatSongLyricsForWhatsApp(title, tone, lyrics, obs = "") {
+    let cleanLyrics = lyrics || "";
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = cleanLyrics;
+    cleanLyrics = tempDiv.innerText || tempDiv.textContent || "";
+
+    let text = `🎵 *${(title || "CANTO").toUpperCase()}* 🎵\n`;
+    let meta = [];
+    if (tone) meta.push(`🎹 Tono: *${tone}*`);
+    if (obs) meta.push(`📝 Obs: _${obs}_`);
+    if (meta.length > 0) {
+        text += `${meta.join('  |  ')}\n`;
+    }
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    text += cleanLyrics.trim() + `\n\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `✨ _ProyectorPro_`;
+    return text.trim();
+}
+
+async function copyFavsToWhatsApp(onlySelected = false) {
+    let list = [];
+    if (onlySelected && selectedFavIndices.size > 0) {
+        list = Array.from(selectedFavIndices).sort((a, b) => a - b).map(idx => songFavorites[idx]).filter(Boolean);
+    } else {
+        list = songFavorites || [];
+    }
+
+    if (list.length === 0) {
+        showNotification("No hay canciones en favoritos para copiar", "info");
+        return;
+    }
+
+    const text = formatSongFavoritesForWhatsApp(list);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        showNotification(`¡Repertorio (${list.length} cantos) copiado para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copyFavsToWhatsApp = copyFavsToWhatsApp;
+
+async function copySingleFavWhatsApp(idx) {
+    const song = (songFavorites || [])[idx];
+    if (!song) return;
+
+    const text = formatSingleSongForWhatsApp(song);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        const title = song.titulo || song.title || "Canción";
+        showNotification(`¡"${title}" copiado para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copySingleFavWhatsApp = copySingleFavWhatsApp;
+
+async function copyVerseHistoryWhatsApp() {
+    const list = window.verseHistory || [];
+    if (list.length === 0) {
+        showNotification("No hay versículos en el historial para copiar", "info");
+        return;
+    }
+
+    const text = formatVerseHistoryForWhatsApp();
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        showNotification(`¡Historial (${list.length} versículos) copiado para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copyVerseHistoryWhatsApp = copyVerseHistoryWhatsApp;
+
+async function copySingleVerseWhatsApp(idx) {
+    const entry = (window.verseHistory || [])[idx];
+    if (!entry) return;
+
+    const text = formatSingleVerseForWhatsApp(entry);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        const cita = (entry.data && entry.data.cita) || "Versículo";
+        showNotification(`¡${cita} copiado para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+}
+window.copySingleVerseWhatsApp = copySingleVerseWhatsApp;
+
+window.copyCurrentPreviewLyricsWhatsApp = async function() {
+    let title = "";
+    let tone = "";
+    let lyrics = "";
+    let obs = "";
+
+    if (window._currentPreviewSong) {
+        title = window._currentPreviewSong.titulo || window._currentPreviewSong.title || "Sin título";
+        tone = window._currentPreviewSong.tono || "";
+        lyrics = window._currentPreviewSong.letra || window._currentPreviewSong.lyrics || "";
+        obs = window._currentPreviewSong.obs || "";
+    } else {
+        const titleEl = document.getElementById('previewTitle');
+        const lyricsEl = document.getElementById('previewLyrics');
+        const toneEl = document.getElementById('previewTone');
+        title = titleEl ? titleEl.textContent : "Canto";
+        tone = (toneEl && !toneEl.classList.contains('hidden')) ? toneEl.textContent.replace(/^Tono:\s*/i, '') : "";
+        lyrics = lyricsEl ? lyricsEl.innerText : "";
+    }
+
+    const text = formatSongLyricsForWhatsApp(title, tone, lyrics, obs);
+    const success = await copyTextToClipboard(text);
+    if (success) {
+        showNotification(`¡Letra de "${title}" copiada para WhatsApp! 📋`, "success");
+    } else {
+        showNotification("No se pudo copiar al portapapeles", "error");
+    }
+};
+
 /** ── FAVORITOS DE CANCIONES (REAL-TIME CON ACCIONES Y PERMISOS) ── */
 let songFavorites = JSON.parse(localStorage.getItem('mobileSongFavorites')) || [];
 let isFavSelectMode = false;
@@ -2155,21 +2423,24 @@ function renderSongFavorites(filter = "") {
                     </div>
                 </div>
 
-                ${!isFavSelectMode ? (canManage ? `
+                ${!isFavSelectMode ? `
                     <div class="fav-item-actions" onclick="event.stopPropagation();">
-                        <button class="btn-fav-item-action" title="Subir" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, -1);">
-                            <i class="fa-solid fa-chevron-up"></i>
+                        <button class="btn-fav-item-action" title="Copiar para WhatsApp" onclick="event.stopPropagation(); copySingleFavWhatsApp(${originalIdx});" style="color:#25d366; border-color:rgba(37,211,102,0.3);">
+                            <i class="fa-brands fa-whatsapp"></i>
                         </button>
-                        <button class="btn-fav-item-action" title="Bajar" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, 1);">
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                        <button class="btn-fav-item-action fav-action-delete" title="Quitar de favoritos" onclick="event.stopPropagation(); removeSingleFavorite(${originalIdx});">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        ${canManage ? `
+                            <button class="btn-fav-item-action" title="Subir" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, -1);">
+                                <i class="fa-solid fa-chevron-up"></i>
+                            </button>
+                            <button class="btn-fav-item-action" title="Bajar" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation(); moveFavOrder(${originalIdx}, 1);">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                            <button class="btn-fav-item-action fav-action-delete" title="Quitar de favoritos" onclick="event.stopPropagation(); removeSingleFavorite(${originalIdx});">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : ''}
                     </div>
                 ` : `
-                    <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem; margin-left:6px;"></i>
-                `) : `
                     <i class="fa-solid fa-chevron-right" style="opacity:0.3; font-size:0.8rem; margin-left:6px;"></i>
                 `}
             </div>
@@ -2223,6 +2494,12 @@ function updateFavSelectionUI() {
     if (btnDeleteSel) {
         btnDeleteSel.disabled = selectedFavIndices.size === 0;
     }
+    const btnCopySelected = document.getElementById('btnCopySelectedFavs');
+    if (btnCopySelected) {
+        btnCopySelected.disabled = selectedFavIndices.size === 0;
+        btnCopySelected.style.opacity = selectedFavIndices.size === 0 ? '0.4' : '1';
+        btnCopySelected.style.pointerEvents = selectedFavIndices.size === 0 ? 'none' : 'auto';
+    }
 }
 
 function initFavActionButtons() {
@@ -2269,6 +2546,18 @@ function initFavActionButtons() {
     if (btnDeleteSel && !btnDeleteSel._initialized) {
         btnDeleteSel._initialized = true;
         btnDeleteSel.onclick = () => removeSelectedFavorites();
+    }
+
+    const btnCopyWhatsApp = document.getElementById('btnCopyFavsWhatsApp');
+    if (btnCopyWhatsApp && !btnCopyWhatsApp._initialized) {
+        btnCopyWhatsApp._initialized = true;
+        btnCopyWhatsApp.onclick = () => copyFavsToWhatsApp();
+    }
+
+    const btnCopySelected = document.getElementById('btnCopySelectedFavs');
+    if (btnCopySelected && !btnCopySelected._initialized) {
+        btnCopySelected._initialized = true;
+        btnCopySelected.onclick = () => copyFavsToWhatsApp(true);
     }
 }
 
@@ -2370,15 +2659,25 @@ window.showFavoriteLyrics = function(idx) {
     const song = songFavorites[idx];
     if (!song) return;
 
+    window._currentPreviewSong = song;
     const modal = document.getElementById('modalPreview');
     const title = document.getElementById('previewTitle');
+    const toneEl = document.getElementById('previewTone');
     const lyrics = document.getElementById('previewLyrics');
     const footer = document.getElementById('modalPreviewFooter');
 
     const sTitle = song.titulo || song.title || "Sin título";
     const sLyrics = song.letra || song.lyrics || "Sin letra registrada.";
 
-    title.textContent = sTitle + (song.tono ? ` (${song.tono})` : '');
+    title.textContent = sTitle;
+    if (toneEl) {
+        if (song.tono) {
+            toneEl.textContent = `Tono: ${song.tono}`;
+            toneEl.classList.remove('hidden');
+        } else {
+            toneEl.classList.add('hidden');
+        }
+    }
     lyrics.innerHTML = formatLyrics(sLyrics);
     
     // Ocultar botón de añadir al carrito porque esto es consulta de favoritos
@@ -2390,6 +2689,7 @@ window.showFavoriteLyrics = function(idx) {
 // Sobrescribir closePreview para restaurar el footer si se necesita despuÃ©s
 const originalClosePreview = window.closePreview;
 window.closePreview = function() {
+    window._currentPreviewSong = null;
     const footer = document.getElementById('modalPreviewFooter');
     if (footer) footer.style.display = 'flex';
     if (originalClosePreview) originalClosePreview();
@@ -2443,6 +2743,9 @@ function renderVerseHistory() {
                         <i class="fa-solid fa-trash-can"></i> ELIMINAR
                     </button>
                 ` : ''}
+                <button onclick="copySingleVerseWhatsApp(${idx})" class="btn-fav-item-action" title="Copiar versículo para WhatsApp" style="width:auto; padding:5px 10px; height:32px; gap:5px; background:rgba(37,211,102,0.15); border:1px solid rgba(37,211,102,0.35); color:#25d366; font-size:0.72rem; border-radius:6px; font-weight:700; cursor:pointer;">
+                    <i class="fa-brands fa-whatsapp"></i> COPIAR
+                </button>
                 <button onclick="reAddFromHistory(${idx})" style="background:var(--wine-accent); color:white; border:1px solid var(--ocher-base); border-radius:6px; padding:5px 12px; height:32px; font-size:0.72rem; font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;">
                     <i class="fa-solid fa-plus"></i> RE-ENVIAR
                 </button>
