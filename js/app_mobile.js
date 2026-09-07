@@ -1039,11 +1039,13 @@ function renderSongLibrary(lista) {
     lista.forEach(item => {
         const el = document.createElement('div');
         el.className = 'mobile-list-item';
+        const toneHtml = item.tono ? `<span>Tono: ${item.tono}</span>` : '';
+        const bpmHtml = item.bpm ? `<span>BPM: ${item.bpm}</span>` : '';
         el.innerHTML = `
             <i class="fa-solid fa-music"></i>
             <div class="item-info">
                 <div class="item-title">${item.titulo}</div>
-                ${item.tono ? `<div style="font-size: 0.75rem; color: var(--ocher-light); opacity: 0.7; margin-top: 1px;">Tono: ${item.tono}</div>` : ''}
+                ${(toneHtml || bpmHtml) ? `<div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--ocher-light); opacity: 0.7; margin-top: 1px;">${toneHtml}${bpmHtml}</div>` : ''}
             </div>
             <i class="fa-solid fa-eye" style="opacity:0.3"></i>
         `;
@@ -1242,6 +1244,26 @@ async function showPreview(song) {
             toneDisplay.classList.remove('hidden');
         } else {
             toneDisplay.classList.add('hidden');
+        }
+    }
+
+    // Asignar BPM si existe
+    const bpmDisplay = document.getElementById('previewBpm');
+    if (bpmDisplay) {
+        let bpmVal = song.bpm || "";
+        if (!bpmVal && window.cloudSongs && window.cloudSongs.length > 0) {
+            const cleanT = normalizeText(song.titulo || song.title || "");
+            const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+            if (match && match.bpm) {
+                bpmVal = match.bpm;
+                if (!song.bpm) song.bpm = match.bpm;
+            }
+        }
+        if (bpmVal) {
+            bpmDisplay.textContent = `BPM: ${bpmVal}`;
+            bpmDisplay.classList.remove('hidden');
+        } else {
+            bpmDisplay.classList.add('hidden');
         }
     }
 
@@ -1470,8 +1492,18 @@ function renderCart(type) {
             // Formato estándar (Canciones o formato viejo)
             const display = item.titulo || item.texto || (typeof item === 'string' ? item : "Elemento");
             displayHtml = `<div style="font-weight:700; color:white;">${display}</div>`;
-            if (type === 'songs' && item.tono) {
-                displayHtml += `<div style="font-size:0.75rem; color:var(--ocher-light); opacity:0.7; margin-top:2px;">Tono: ${item.tono}</div>`;
+            if (type === 'songs') {
+                const toneHtml = item.tono ? `<span>Tono: ${item.tono}</span>` : '';
+                let itemBpm = item.bpm || "";
+                if (!itemBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+                    const cleanT = normalizeText(item.titulo || item.title || "");
+                    const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+                    if (match && match.bpm) itemBpm = match.bpm;
+                }
+                const bpmHtml = itemBpm ? `<span>BPM: ${itemBpm}</span>` : '';
+                if (toneHtml || bpmHtml) {
+                    displayHtml += `<div style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--ocher-light); opacity:0.7; margin-top:2px;">${toneHtml}${bpmHtml}</div>`;
+                }
             }
         }
 
@@ -1551,11 +1583,23 @@ async function handleGlobalSend() {
             // Evitar duplicar si ya existe en Favoritos
             const exists = songFavorites.some(f => (f.titulo || f.title || "").trim().toLowerCase() === sTitle.toLowerCase());
             if (!exists) {
+                let songBpm = song.bpm || entry.bpm || "";
+                let songCompas = song.compas || entry.compas || "";
+                if (!songBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+                    const cleanT = normalizeText(sTitle);
+                    const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+                    if (match) {
+                        if (match.bpm) songBpm = match.bpm;
+                        if (match.compas) songCompas = match.compas;
+                    }
+                }
                 newFavEntries.push({
                     id: song.id || entry.id || ("canto_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4)),
                     titulo: sTitle,
                     title: sTitle,
                     tono: song.tono || entry.tono || "",
+                    bpm: songBpm,
+                    compas: songCompas,
                     letra: song.letra || song.lyrics || entry.letra || entry.lyrics || "",
                     lyrics: song.letra || song.lyrics || entry.letra || entry.lyrics || "",
                     obs: entry.obs || song.obs || "",
@@ -2124,11 +2168,17 @@ function formatSongFavoritesForWhatsApp(songsToFormat = null) {
         const title = (s.titulo || s.title || "Sin título").trim();
         const tono = (s.tono || "").trim();
         const obs = (s.obs || "").trim();
+        let sBpm = s.bpm || "";
+        if (!sBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+            const cleanT = normalizeText(title);
+            const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+            if (match && match.bpm) sBpm = match.bpm;
+        }
 
         text += `*${idx + 1}. ${title}*\n`;
         let meta = [];
         if (tono) meta.push(`🎹 Tono: *${tono}*`);
-        if (s.bpm) meta.push(`⏱ *${s.bpm} BPM*`);
+        if (sBpm) meta.push(`⏱ *${sBpm} BPM*`);
         if (obs) meta.push(`📝 Obs: _${obs}_`);
         if (meta.length > 0) {
             text += `   ${meta.join('  |  ')}\n`;
@@ -2147,11 +2197,17 @@ function formatSingleSongForWhatsApp(song) {
     const tono = (song.tono || "").trim();
     const lyrics = song.letra || song.lyrics || "";
     const obs = (song.obs || "").trim();
+    let songBpm = song.bpm || "";
+    if (!songBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+        const cleanT = normalizeText(title);
+        const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+        if (match && match.bpm) songBpm = match.bpm;
+    }
 
     let text = `🎵 *${title.toUpperCase()}* 🎵\n`;
     let meta = [];
     if (tono) meta.push(`🎹 Tono: *${tono}*`);
-    if (song.bpm) meta.push(`⏱ *${song.bpm} BPM*`);
+    if (songBpm) meta.push(`⏱ *${songBpm} BPM*`);
     if (obs) meta.push(`📝 Obs: _${obs}_`);
     if (meta.length > 0) {
         text += `${meta.join('  |  ')}\n`;
@@ -2407,6 +2463,12 @@ function renderSongFavorites(filter = "") {
         const isLast = originalIdx === songFavorites.length - 1;
         const isChecked = selectedFavIndices.has(originalIdx);
         const ownerName = s.addedBy || 'PC';
+        let sBpm = s.bpm || "";
+        if (!sBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+            const cleanT = normalizeText(sTitle);
+            const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+            if (match && match.bpm) sBpm = match.bpm;
+        }
 
         html += `
             <div class="cloud-song-item" onclick="handleFavItemClick(event, ${originalIdx})">
@@ -2421,7 +2483,7 @@ function renderSongFavorites(filter = "") {
                     <div class="song-name-main" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sTitle}</div>
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
                         ${s.tono ? `<span style="font-size:0.75rem; color:var(--ocher-light);">Tono: ${s.tono}</span>` : ''}
-                        ${s.bpm ? `<span class="song-bpm-tag" title="Tempo"><i class="fa-solid fa-stopwatch"></i> ${s.bpm} BPM</span>` : ''}
+                        ${sBpm ? `<span style="font-size:0.75rem; color:var(--ocher-light);">BPM: ${sBpm}</span>` : ''}
                         ${!canManage ? `
                             <span class="song-owner-tag" title="Enviado por ${ownerName}">
                                 <i class="fa-solid fa-user-lock" style="font-size:0.65rem;"></i> ${ownerName}
@@ -2687,8 +2749,18 @@ const MobileMetronome = {
 
     loadSong(song) {
         this.currentSong = song;
-        const bpm = song && song.bpm ? parseInt(song.bpm) : 120;
-        const compas = song && song.compas ? song.compas : '4/4';
+        let sBpm = song && song.bpm ? song.bpm : null;
+        let sCompas = song && song.compas ? song.compas : null;
+        if (!sBpm && song && window.cloudSongs && window.cloudSongs.length > 0) {
+            const cleanT = normalizeText(song.titulo || song.title || "");
+            const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+            if (match) {
+                if (match.bpm) sBpm = match.bpm;
+                if (match.compas) sCompas = match.compas;
+            }
+        }
+        const bpm = sBpm ? parseInt(sBpm) : 120;
+        const compas = sCompas ? sCompas : '4/4';
         this.setBpm(bpm, compas);
     },
 
@@ -2895,6 +2967,27 @@ window.showFavoriteLyrics = function(idx) {
             toneEl.classList.remove('hidden');
         } else {
             toneEl.classList.add('hidden');
+        }
+    }
+
+    let songBpm = song.bpm || "";
+    if (!songBpm && window.cloudSongs && window.cloudSongs.length > 0) {
+        const cleanT = normalizeText(sTitle);
+        const match = window.cloudSongs.find(cs => normalizeText(cs.titulo || cs.title || "") === cleanT);
+        if (match && match.bpm) {
+            songBpm = match.bpm;
+            if (!song.bpm) song.bpm = match.bpm;
+            if (!song.compas && match.compas) song.compas = match.compas;
+        }
+    }
+
+    const bpmEl = document.getElementById('previewBpm');
+    if (bpmEl) {
+        if (songBpm) {
+            bpmEl.textContent = `BPM: ${songBpm}`;
+            bpmEl.classList.remove('hidden');
+        } else {
+            bpmEl.classList.add('hidden');
         }
     }
 

@@ -455,9 +455,14 @@
                 <div style="display: flex; flex-direction: column; flex: 1;">
                     <h3 id="previewTitle" style="color: white; font-size: 1.15rem; margin: 0; line-height: 1.2;">Título
                         del Canto</h3>
-                    <span id="previewTone" class="hidden"
-                        style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9; margin-top: 2px;">Tono:
-                        -</span>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                        <span id="previewTone" class="hidden"
+                            style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9;">Tono:
+                            -</span>
+                        <span id="previewBpm" class="hidden"
+                            style="font-size: 0.7rem; color: var(--ocher-light); font-weight: 700; opacity: 0.9;">BPM:
+                            -</span>
+                    </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button id="btnCopyPreviewWhatsApp" onclick="copyCurrentPreviewLyricsWhatsApp()" class="btn-fav-head-action btn-fav-whatsapp" title="Copiar letra para WhatsApp" style="background: rgba(37,211,102,0.15); border-color: rgba(37,211,102,0.35);">

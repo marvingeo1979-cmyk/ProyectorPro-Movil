@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proyectorpro-v8';
+const CACHE_NAME = 'proyectorpro-v9';
 const ASSETS = [
     './',
     './index.html',
