@@ -381,6 +381,26 @@ function initCloudListeners() {
         }
         
         if (numChunks > 0) {
+            // Actualización ultra-rápida de un solo bloque si solo se editó 1 canción en la PC
+            if (data.lastUpdatedChunk !== undefined && window.cloudSongs && window.cloudSongs.length > 0) {
+                try {
+                    const chunkDoc = await db.collection('biblioteca_cantos').doc(`chunk_${data.lastUpdatedChunk}`).get();
+                    if (chunkDoc.exists) {
+                        const updatedChunkList = chunkDoc.data().lista || [];
+                        const chunkSize = 20;
+                        const start = data.lastUpdatedChunk * chunkSize;
+                        window.cloudSongs.splice(start, updatedChunkList.length, ...updatedChunkList);
+                        localStorage.setItem('mobileCloudSongs', JSON.stringify(window.cloudSongs));
+                        localStorage.setItem('mobileSongsHash', cloudHash);
+                        renderSongLibrary(window.cloudSongs);
+                        console.log(`[Sync] Bloque ${data.lastUpdatedChunk} actualizado en caliente.`);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("[Sync] Error en actualización de bloque, intentando full:", e);
+                }
+            }
+
             console.log(`[Sync] Nueva versión detectada (${cloudHash}). Sincronizando...`);
             
             if (window.isFetchingChunks) return;
@@ -1039,12 +1059,36 @@ function renderSongLibrary(lista) {
     lista.forEach(item => {
         const el = document.createElement('div');
         el.className = 'mobile-list-item';
-        const toneHtml = item.tono ? `<span>Tono: ${item.tono}</span>` : '';
-        const bpmHtml = item.bpm ? `<span>BPM: ${item.bpm}</span>` : '';
+
+        const sTitle = item.titulo || item.title || "Canto";
+        let itemTono = item.tono || "";
+        let itemBpm = (item.bpm !== undefined && item.bpm !== null && item.bpm !== '') ? String(item.bpm) : "";
+
+        // Si la canción aún no tiene BPM en la lista pero está en Favoritos (en vivo con PC), asociarlo
+        if (!itemBpm && window.songFavorites && window.songFavorites.length > 0) {
+            const cleanT = (typeof normalizeText === 'function') ? normalizeText(sTitle) : sTitle.toLowerCase().trim();
+            const foundFav = window.songFavorites.find(f => {
+                const fT = (typeof normalizeText === 'function') ? normalizeText(f.titulo || f.title || "") : (f.titulo || f.title || "").toLowerCase().trim();
+                return fT === cleanT;
+            });
+            if (foundFav) {
+                if (foundFav.bpm) {
+                    itemBpm = String(foundFav.bpm);
+                    item.bpm = itemBpm;
+                }
+                if (!itemTono && foundFav.tono) {
+                    itemTono = String(foundFav.tono);
+                    item.tono = itemTono;
+                }
+            }
+        }
+
+        const toneHtml = itemTono ? `<span>Tono: ${itemTono}</span>` : '';
+        const bpmHtml = itemBpm ? `<span>BPM: ${itemBpm}</span>` : '';
         el.innerHTML = `
             <i class="fa-solid fa-music"></i>
             <div class="item-info">
-                <div class="item-title">${item.titulo}</div>
+                <div class="item-title">${sTitle}</div>
                 ${(toneHtml || bpmHtml) ? `<div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--ocher-light); opacity: 0.7; margin-top: 1px;">${toneHtml}${bpmHtml}</div>` : ''}
             </div>
             <i class="fa-solid fa-eye" style="opacity:0.3"></i>
@@ -2385,6 +2429,7 @@ window.copyCurrentPreviewLyricsWhatsApp = async function() {
 
 /** ── FAVORITOS DE CANCIONES (REAL-TIME CON ACCIONES Y PERMISOS) ── */
 let songFavorites = JSON.parse(localStorage.getItem('mobileSongFavorites')) || [];
+window.songFavorites = songFavorites;
 let isFavSelectMode = false;
 let selectedFavIndices = new Set();
 
@@ -2409,11 +2454,16 @@ function initSongFavoritesListener() {
     return db.collection('cantos_favoritos').doc('master').onSnapshot(doc => {
         if (doc.exists) {
             songFavorites = doc.data().lista || [];
+            window.songFavorites = songFavorites;
             localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
             console.log(`[Mobile] Favoritos actualizados: ${songFavorites.length} canciones.`);
             renderSongFavorites();
+            if (window.cloudSongs && window.cloudSongs.length > 0) {
+                renderSongLibrary(window.cloudSongs);
+            }
         } else {
             songFavorites = [];
+            window.songFavorites = [];
             localStorage.setItem('mobileSongFavorites', JSON.stringify(songFavorites));
             console.warn("[Mobile] El documento de favoritos no existe en la nube.");
             renderSongFavorites();
